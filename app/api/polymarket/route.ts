@@ -4,139 +4,83 @@ import { API_URLS } from '@/lib/constants'
 export const dynamic = 'force-dynamic'
 export const revalidate = 300 // 5 minutes
 
+/**
+ * Retry a fetch request with exponential backoff
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit = {},
+  maxRetries: number = 3
+): Promise<Response> {
+  let lastError: Error | null = null
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Accept': 'application/json',
+          ...options.headers,
+        },
+      })
+
+      if (response.ok) {
+        return response
+      }
+
+      // Don't retry on 4xx errors (client errors)
+      if (response.status >= 400 && response.status < 500) {
+        throw new Error(`Client error: ${response.status} ${response.statusText}`)
+      }
+
+      lastError = new Error(`Server error: ${response.status} ${response.statusText}`)
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+    }
+
+    // Exponential backoff: wait 1s, 2s, 4s
+    if (attempt < maxRetries - 1) {
+      await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 1000))
+    }
+  }
+
+  throw lastError || new Error('Failed to fetch after retries')
+}
+
 export async function GET() {
   try {
-    const response = await fetch(`${API_URLS.POLYMARKET}/events`, {
-      headers: {
-        'Accept': 'application/json',
-      },
+    console.log('Fetching Polymarket markets from:', `${API_URLS.POLYMARKET}/markets`)
+    
+    const response = await fetchWithRetry(`${API_URLS.POLYMARKET}/markets`, {
       next: { revalidate: 300 },
     })
 
-    if (!response.ok) {
-      console.error(`Polymarket API error: ${response.status} ${response.statusText}`)
-      // Return mock data as fallback
-      return NextResponse.json(getMockPolymarketMarkets())
-    }
-
-    const events = await response.json()
+    const markets = await response.json()
     
-    if (!Array.isArray(events) || events.length === 0) {
-      console.warn('Polymarket API returned empty or invalid events array')
-      return NextResponse.json(getMockPolymarketMarkets())
-    }
-
-    // Fetch markets for each event (limit to first 10 for performance)
-    const eventsToProcess = events
-      .filter((event: any) => event.active && !event.archived)
-      .slice(0, 10)
-
-    if (eventsToProcess.length === 0) {
-      console.warn('No active events found')
-      return NextResponse.json(getMockPolymarketMarkets())
-    }
-
-    const marketsPromises = eventsToProcess.map(async (event: any) => {
-      try {
-        const marketsResponse = await fetch(
-          `${API_URLS.POLYMARKET}/events/${event.slug}/markets`,
-          { 
-            next: { revalidate: 300 },
-            headers: {
-              'Accept': 'application/json',
-            },
-          }
-        )
-
-        if (!marketsResponse.ok) {
-          console.warn(`Failed to fetch markets for event ${event.slug}: ${marketsResponse.status}`)
-          return []
-        }
-
-        const markets = await marketsResponse.json()
-        
-        if (!Array.isArray(markets)) {
-          return []
-        }
-
-        return markets
-          .filter((m: any) => m.active && !m.archived)
-          .map((m: any) => ({
-            ...m,
-            eventSlug: event.slug,
-            eventTitle: event.title,
-            eventDescription: event.description,
-            eventTags: event.tags || [],
-          }))
-      } catch (error) {
-        console.error(`Error fetching markets for event ${event.slug}:`, error)
-        return []
-      }
+    console.log('Polymarket API response:', {
+      isArray: Array.isArray(markets),
+      count: Array.isArray(markets) ? markets.length : 0,
+      sample: Array.isArray(markets) && markets.length > 0 ? markets[0] : null,
     })
 
-    const marketsArrays = await Promise.all(marketsPromises)
-    const allMarkets = marketsArrays.flat()
-
-    // If no markets found, return mock data
-    if (allMarkets.length === 0) {
-      console.warn('No markets found, returning mock data')
-      return NextResponse.json(getMockPolymarketMarkets())
+    if (!Array.isArray(markets) || markets.length === 0) {
+      console.warn('Polymarket API returned empty or invalid markets array')
+      return NextResponse.json([])
     }
 
-    return NextResponse.json(allMarkets)
+    // Filter active markets and limit to first 50
+    const activeMarkets = markets
+      .filter((m: any) => m.active && !m.archived)
+      .slice(0, 50)
+
+    console.log(`Returning ${activeMarkets.length} active Polymarket markets`)
+
+    return NextResponse.json(activeMarkets)
   } catch (error) {
     console.error('Error fetching Polymarket markets:', error)
-    // Return mock data as fallback instead of error
-    return NextResponse.json(getMockPolymarketMarkets())
+    return NextResponse.json(
+      { error: 'Failed to fetch Polymarket markets', details: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    )
   }
-}
-
-function getMockPolymarketMarkets() {
-  return [
-    {
-      id: 'poly-1',
-      question: 'Will Bitcoin reach $100,000 by end of 2024?',
-      description: 'Bitcoin price prediction market',
-      slug: 'btc-100k-2024',
-      active: true,
-      archived: false,
-      outcomePrices: ['0.45', '0.55'],
-      volume24h: '150000',
-      tags: [{ name: 'Crypto', slug: 'crypto' }],
-      eventSlug: 'crypto-2024',
-      eventTitle: 'Crypto Predictions 2024',
-      eventDescription: 'Cryptocurrency markets',
-      eventTags: [{ name: 'Crypto', slug: 'crypto' }],
-    },
-    {
-      id: 'poly-2',
-      question: 'Will the S&P 500 close above 5000 by end of 2024?',
-      description: 'Stock market prediction',
-      slug: 'spx-5000-2024',
-      active: true,
-      archived: false,
-      outcomePrices: ['0.65', '0.35'],
-      volume24h: '200000',
-      tags: [{ name: 'Markets', slug: 'markets' }],
-      eventSlug: 'markets-2024',
-      eventTitle: 'Stock Market Predictions',
-      eventDescription: 'Stock market forecasts',
-      eventTags: [{ name: 'Markets', slug: 'markets' }],
-    },
-    {
-      id: 'poly-3',
-      question: 'Will there be a recession in 2024?',
-      description: 'Economic prediction market',
-      slug: 'recession-2024',
-      active: true,
-      archived: false,
-      outcomePrices: ['0.30', '0.70'],
-      volume24h: '180000',
-      tags: [{ name: 'Economics', slug: 'economics' }],
-      eventSlug: 'economics-2024',
-      eventTitle: 'Economic Predictions',
-      eventDescription: 'Economic forecasts',
-      eventTags: [{ name: 'Economics', slug: 'economics' }],
-    },
-  ]
 }

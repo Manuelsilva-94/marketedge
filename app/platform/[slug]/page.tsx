@@ -1,13 +1,12 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'next/navigation'
 import { MarketTable } from '@/components/MarketTable'
 import { FilterBar } from '@/components/FilterBar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AdPlaceholder } from '@/components/AdPlaceholder'
-import { fetchPolymarketMarkets, fetchKalshiMarkets } from '@/lib/platforms'
-import type { Market, Platform } from '@/lib/platforms/types'
+import { usePolymarketMarkets, useKalshiMarkets } from '@/lib/hooks/useMarkets'
+import type { Platform } from '@/lib/platforms/types'
 import { formatCompactNumber } from '@/lib/utils/formatting'
 import { useMemo } from 'react'
 
@@ -18,15 +17,8 @@ export default function PlatformPage() {
   const platform: Platform | null =
     slug === 'polymarket' ? 'polymarket' : slug === 'kalshi' ? 'kalshi' : null
 
-  const { data: polymarketMarkets = [], isLoading: isLoadingPoly } = useQuery<Market[]>({
-    queryKey: ['polymarket-markets'],
-    queryFn: fetchPolymarketMarkets,
-  })
-
-  const { data: kalshiMarkets = [], isLoading: isLoadingKalshi } = useQuery<Market[]>({
-    queryKey: ['kalshi-markets'],
-    queryFn: fetchKalshiMarkets,
-  })
+  const { data: polymarketMarkets = [], isLoading: isLoadingPoly } = usePolymarketMarkets()
+  const { data: kalshiMarkets = [], isLoading: isLoadingKalshi } = useKalshiMarkets()
 
   const markets = useMemo(() => {
     if (platform === 'polymarket') return polymarketMarkets

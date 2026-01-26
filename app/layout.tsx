@@ -63,6 +63,14 @@ export default function RootLayout({
                   >
                     Kalshi
                   </Link>
+                  {process.env.NODE_ENV === 'development' && (
+                    <Link
+                      href="/test"
+                      className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      Test
+                    </Link>
+                  )}
                 </nav>
               </div>
             </header>

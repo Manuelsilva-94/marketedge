@@ -5,20 +5,14 @@ import { ArbitrageCard } from '@/components/ArbitrageCard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AdPlaceholder } from '@/components/AdPlaceholder'
-import { fetchPolymarketMarkets, fetchKalshiMarkets, findArbitrageOpportunities } from '@/lib/platforms'
-import type { Market, ArbitrageOpportunity } from '@/lib/platforms/types'
+import { usePolymarketMarkets, useKalshiMarkets } from '@/lib/hooks/useMarkets'
+import { findArbitrageOpportunities } from '@/lib/platforms'
+import type { ArbitrageOpportunity } from '@/lib/platforms/types'
 import { HIGH_CONFIDENCE_THRESHOLD } from '@/lib/constants'
 
 export default function ArbitragePage() {
-  const { data: polymarketMarkets = [], isLoading: isLoadingPoly } = useQuery<Market[]>({
-    queryKey: ['polymarket-markets'],
-    queryFn: fetchPolymarketMarkets,
-  })
-
-  const { data: kalshiMarkets = [], isLoading: isLoadingKalshi } = useQuery<Market[]>({
-    queryKey: ['kalshi-markets'],
-    queryFn: fetchKalshiMarkets,
-  })
+  const { data: polymarketMarkets = [], isLoading: isLoadingPoly } = usePolymarketMarkets()
+  const { data: kalshiMarkets = [], isLoading: isLoadingKalshi } = useKalshiMarkets()
 
   const isLoading = isLoadingPoly || isLoadingKalshi
   const allMarkets = [...polymarketMarkets, ...kalshiMarkets]

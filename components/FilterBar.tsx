@@ -5,9 +5,7 @@ import { Card, CardContent } from './ui/card'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { useMarketStore } from '@/lib/store/marketStore'
-import { useQuery } from '@tanstack/react-query'
-import { fetchPolymarketMarkets, fetchKalshiMarkets } from '@/lib/platforms'
-import type { Market } from '@/lib/platforms/types'
+import { usePolymarketMarkets, useKalshiMarkets } from '@/lib/hooks/useMarkets'
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value)
@@ -44,16 +42,9 @@ export function FilterBar() {
   }, [debouncedSearch, setSearchQuery])
 
   // Get all markets to extract unique categories
-  const { data: allMarkets = [] } = useQuery<Market[]>({
-    queryKey: ['all-markets'],
-    queryFn: async () => {
-      const [poly, kalshi] = await Promise.all([
-        fetchPolymarketMarkets(),
-        fetchKalshiMarkets(),
-      ])
-      return [...poly, ...kalshi]
-    },
-  })
+  const { data: polymarketMarkets = [] } = usePolymarketMarkets()
+  const { data: kalshiMarkets = [] } = useKalshiMarkets()
+  const allMarkets = [...polymarketMarkets, ...kalshiMarkets]
 
   const categories = Array.from(
     new Set(allMarkets.map((m) => m.category))
