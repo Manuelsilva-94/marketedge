@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MarketEdge - Cross-Platform Prediction Markets Intelligence
+
+A Next.js 14+ web application that aggregates prediction market data from Polymarket and Kalshi, detects arbitrage opportunities, and provides real-time analytics.
+
+## Features
+
+- **Unified Dashboard**: View markets from both Polymarket and Kalshi in one place
+- **Arbitrage Detection**: Automatically find price discrepancies across platforms
+- **Real-time Analytics**: Live market data with 5-minute caching
+- **Advanced Filtering**: Search, filter by category, volume, and spread
+- **Platform-Specific Views**: Dedicated pages for each platform
+- **Monetization Ready**: Ad placeholders and affiliate link integration
+
+## Tech Stack
+
+- **Next.js 16** with App Router
+- **TypeScript** (strict mode)
+- **Tailwind CSS v4** with dark mode
+- **React Query** for data fetching and caching
+- **Zustand** for state management
+- **shadcn/ui** components
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Project Structure
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+/app
+├── page.tsx              # Main dashboard
+├── layout.tsx            # Root layout with navigation
+├── arbitrage/page.tsx   # Arbitrage opportunities page
+├── platform/[slug]/     # Platform-specific pages
+└── components/          # React components
+    ├── MarketTable.tsx
+    ├── PlatformTabs.tsx
+    ├── ArbitrageCard.tsx
+    ├── FilterBar.tsx
+    └── AdPlaceholder.tsx
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+/lib
+├── platforms/           # API wrappers and types
+│   ├── types.ts
+│   ├── polymarket.ts
+│   ├── kalshi.ts
+│   └── arbitrage.ts
+├── store/               # Zustand stores
+└── utils/               # Utility functions
+```
 
-## Learn More
+## API Integration
 
-To learn more about Next.js, take a look at the following resources:
+### Polymarket
+- Base URL: `https://gamma-api.polymarket.com`
+- Endpoints: `/events`, `/events/{slug}/markets`
+- No authentication required
+- Rate limit: ~1000 req/hour
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Kalshi
+- Base URL: `https://api.elections.kalshi.com`
+- Endpoints: `/trade-api/v2/markets`
+- Optional API key for read-only access
+- Generous rate limits
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment
 
-## Deploy on Vercel
+This project is ready to deploy on Vercel:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# Deploy to Vercel
+vercel
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Environment Variables
+
+No environment variables are required for the MVP. Future features may require:
+- `KALSHI_API_KEY` (optional)
+- `STRIPE_SECRET_KEY` (for premium subscriptions)
+- `GOOGLE_ADSENSE_ID` (for ad monetization)
+
+## License
+
+MIT
