@@ -1,0 +1,22 @@
+[00:00:01.957] Server  LOG     ✓ Ready in 1316ms
+[00:00:06.876] Server  LOG     🧪 Testing Manifold service...
+[00:00:06.878] Server  LOG     
+📊 Test 1: Fetching 10 markets...
+[00:00:06.879] Server  LOG     📡 Fetching Manifold markets: https://api.manifold.markets/v0/markets?limit=100
+[00:00:07.283] Server  LOG     ✅ Fetched 100 markets, 45 are binary
+[00:00:07.285] Server  LOG     ✅ Fetched 45 binary markets
+[00:00:07.286] Server  LOG     
+🔄 Test 2: Normalizing first market...
+[00:00:07.288] Server  LOG     ✅ Normalized: {}
+[00:00:07.288] Server  LOG     
+💾 Test 3: Syncing 20 markets to DB...
+[00:00:07.288] Server  LOG     
+🔄 Starting Manifold sync (limit: 20)...
+[00:00:07.289] Server  LOG     📡 Fetching Manifold markets: https://api.manifold.markets/v0/markets?limit=20
+[00:00:08.082] Server  LOG     ✅ Fetched 20 markets, 8 are binary
+[00:00:11.177] Server  LOG     
+✅ Manifold sync complete:
+[00:00:11.178] Server  LOG        - Synced: 8
+[00:00:11.178] Server  LOG        - Errors: 0
+[00:00:11.179] Server  LOG        - Total: 8
+[00:00:11.179] Server  LOG     ✅ Synced 8 markets to database

@@ -1,0 +1,101 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+enum Platform {
+  POLYMARKET
+  KALSHI
+  MANIFOLD
+}
+
+model Market {
+  id              String    @id @default(cuid())
+
+  // Platform
+  platform        Platform
+  externalId      String
+
+  // Identity
+  question        String
+  slug            String
+  description     String?
+  category        String?
+  tags            String[]
+
+  // Prices (normalized 0-1)
+  yesPrice        Float
+  noPrice         Float
+  midPrice        Float?
+
+  // Kalshi specific (bid/ask)
+  yesBid          Float?
+  yesAsk          Float?
+  noBid           Float?
+  noAsk           Float?
+
+  // Fees
+  makerFee        Float?
+  takerFee        Float?
+  feeStructure    String?
+
+  // Volume (USD)
+  volume24h       Float     @default(0)
+  volumeTotal     Float     @default(0)
+  liquidity       Float     @default(0)
+  openInterest    Float?
+
+  // Matching
+  normalizedQuestion String?
+
+  // Status
+  active          Boolean   @default(true)
+  endDate         DateTime?
+  resolvedAt      DateTime?
+  outcome         String?
+
+  // URLs
+  imageUrl        String?
+  url             String?
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastSyncedAt    DateTime  @default(now())
+
+  @@unique([platform, externalId])
+  @@index([slug])
+  @@index([platform, active])
+  @@index([normalizedQuestion])
+  @@index([category])
+}
+
+model Comparison {
+  id              String    @id @default(cuid())
+
+  // Markets being compared
+  marketIds       String[]  // Array of market IDs
+
+  // Best prices
+  bestYesPrice    Float
+  bestYesPlatform Platform
+  bestNoPrice     Float
+  bestNoPlatform  Platform
+
+  // Arbitrage
+  arbitrageExists Boolean   @default(false)
+  arbitrageROI    Float?
+  arbitrageProfit Float?
+  strategy        String?
+
+  // Metadata
+  createdAt       DateTime  @default(now())
+  expiresAt       DateTime  // 5 min TTL
+
+  @@index([arbitrageExists])
+  @@index([createdAt])
+}
