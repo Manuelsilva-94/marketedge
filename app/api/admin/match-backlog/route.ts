@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Market } from '@prisma/client';
 import { MatcherService } from '@/lib/services/matcher.service';
 import { SemanticMatcherService } from '@/lib/services/semantic-matcher.service';
 
@@ -61,7 +60,7 @@ export async function POST(req: NextRequest) {
   const semanticMatcher = new SemanticMatcherService();
 
   // Markets de Kalshi activos sin ningún MarketMatch evaluado
-  const kalshiMarkets: Market[] = await prisma.market.findMany({
+  const kalshiMarkets = await prisma.market.findMany({
     where: {
       platform: 'KALSHI',
       active: true,
@@ -103,7 +102,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Cargar Polymarket activos en memoria una sola vez (top 15k por volumen)
-  const polyMarkets: Market[] = await prisma.market.findMany({
+  const polyMarkets = await prisma.market.findMany({
     where: { platform: 'POLYMARKET', active: true },
     orderBy: { volume24h: 'desc' },
     take: 15000
