@@ -10,75 +10,158 @@ generator client {
 enum Platform {
   POLYMARKET
   KALSHI
-  MANIFOLD
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  pins          Pin[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+model Pin {
+  id         String   @id @default(cuid())
+  userId     String
+  type       PinType
+  targetId   String
+  notes      String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, type, targetId])
+  @@index([userId, type])
+}
+
+enum PinType {
+  WHALE
+  ARBITRAGE
+  COMPARISON
 }
 
 model Market {
-  id              String    @id @default(cuid())
+  id String @id @default(cuid())
 
   // Platform
-  platform        Platform
-  externalId      String
+  platform   Platform
+  externalId String
 
   // Identity
-  question        String
-  slug            String
-  description     String?
-  category        String?
-  tags            String[]
-
-  // Prices (normalized 0-1)
-  yesPrice        Float
-  noPrice         Float
-  midPrice        Float?
-
-  // Kalshi specific (bid/ask)
-  yesBid          Float?
-  yesAsk          Float?
-  noBid           Float?
-  noAsk           Float?
+  question    String
+  slug        String
+  description String?
+  category    String?
+  tags        String[]
 
   // Fees
-  makerFee        Float?
-  takerFee        Float?
-  feeStructure    String?
+  makerFee     Float?
+  takerFee     Float?
+  feeStructure String?
 
   // Volume (USD)
-  volume24h       Float     @default(0)
-  volumeTotal     Float     @default(0)
-  liquidity       Float     @default(0)
-  openInterest    Float?
+  volume24h    Float  @default(0)
+  volumeTotal  Float  @default(0)
+  liquidity    Float  @default(0)
+  openInterest Float?
 
   // Matching
   normalizedQuestion String?
 
   // Status
-  active          Boolean   @default(true)
-  endDate         DateTime?
-  resolvedAt      DateTime?
-  outcome         String?
+  active     Boolean   @default(true)
+  endDate    DateTime?
+  resolvedAt DateTime?
+  outcome    String?
 
   // URLs
-  imageUrl        String?
-  url             String?
+  imageUrl String?
+  url      String?
+
+  // Event grouping
+  eventId    String?
+  eventSlug  String?
+  eventTitle String?
+  seriesId   String?
 
   // Timestamps
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  lastSyncedAt    DateTime  @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastSyncedAt DateTime @default(now())
+
+  matchesAsA MarketMatch[] @relation("MatchA")
+  matchesAsB MarketMatch[] @relation("MatchB")
 
   @@unique([platform, externalId])
   @@index([slug])
   @@index([platform, active])
   @@index([normalizedQuestion])
   @@index([category])
+  @@index([eventSlug])
+  @@index([seriesId])
+  @@index([createdAt])
+}
+
+model MarketMatch {
+  id           String   @id @default(cuid())
+  marketAId    String
+  marketBId    String
+  isEquivalent Boolean
+  confidence   Float
+  reasoning    String?
+  model        String   @default("gemini-flash")
+  createdAt    DateTime @default(now())
+
+  marketA Market @relation("MatchA", fields: [marketAId], references: [id], onDelete: Cascade)
+  marketB Market @relation("MatchB", fields: [marketBId], references: [id], onDelete: Cascade)
+  opportunities ArbitrageOpportunity[]
+
+  @@unique([marketAId, marketBId])
+  @@index([isEquivalent])
+  @@index([marketAId])
+  @@index([marketBId])
 }
 
 model Comparison {
-  id              String    @id @default(cuid())
+  id String @id @default(cuid())
 
   // Markets being compared
-  marketIds       String[]  // Array of market IDs
+  marketIds String[] // Array of market IDs
 
   // Best prices
   bestYesPrice    Float
@@ -87,15 +170,48 @@ model Comparison {
   bestNoPlatform  Platform
 
   // Arbitrage
-  arbitrageExists Boolean   @default(false)
+  arbitrageExists Boolean @default(false)
   arbitrageROI    Float?
   arbitrageProfit Float?
   strategy        String?
 
   // Metadata
-  createdAt       DateTime  @default(now())
-  expiresAt       DateTime  // 5 min TTL
+  createdAt DateTime @default(now())
+  expiresAt DateTime // 5 min TTL
 
   @@index([arbitrageExists])
   @@index([createdAt])
+}
+
+model SyncLog {
+  id           String   @id @default(cuid())
+  platform     Platform
+  lastSyncedAt DateTime
+  marketsCount Int
+  duration     Int // segundos
+  errors       Int      @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([platform, lastSyncedAt])
+}
+
+model ArbitrageOpportunity {
+  id         String    @id @default(cuid())
+  matchId    String
+  roiPercent Float
+  buyYesOn   Platform
+  buyNoOn    Platform
+  polyPrice  Float
+  kalshiPrice Float
+  detectedAt DateTime  @default(now())
+  closedAt   DateTime?
+  active     Boolean   @default(true)
+  notifiedAt DateTime?
+
+  match MarketMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([active])
+  @@index([detectedAt])
+  @@index([matchId])
 }

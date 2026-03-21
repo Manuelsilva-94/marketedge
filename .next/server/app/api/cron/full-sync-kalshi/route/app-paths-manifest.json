@@ -1,0 +1,3 @@
+{
+  "/api/cron/full-sync-kalshi/route": "app/api/cron/full-sync-kalshi/route.js"
+}

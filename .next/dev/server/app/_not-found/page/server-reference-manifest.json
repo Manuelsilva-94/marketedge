@@ -1,4 +1,20 @@
 {
-  "node": {},
+  "node": {
+    "0084f712118799913d22aae50c4bcea52da9757900": {
+      "workers": {
+        "app/_not-found/page": {
+          "moduleId": "[project]/.next-internal/server/app/_not-found/page/actions.js { ACTIONS_MODULE0 => \"[project]/components/layout/Navbar.tsx [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "exportedName": "$$RSC_SERVER_ACTION_0",
+          "filename": "components/layout/Navbar.tsx"
+        }
+      },
+      "layer": {
+        "app/_not-found/page": "rsc"
+      },
+      "exportedName": "$$RSC_SERVER_ACTION_0",
+      "filename": "components/layout/Navbar.tsx"
+    }
+  },
   "edge": {}
 }

@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 26, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/moca/Documents/marketedge/app/dashboard/page.tsx"],"sourcesContent":["export default function DashboardPage() {\r\n  return (\r\n    <div className=\"container px-4 py-16\">\r\n      <h1 className=\"text-2xl font-semibold tracking-tight\">Dashboard</h1>\r\n      <p className=\"mt-2 text-muted-foreground\">Your personalized dashboard. Coming soon.</p>\r\n    </div>\r\n  );\r\n}\r\n"],"names":[],"mappings":";;;;;;AAAe,SAAS;IACtB,qBACE,8OAAC;QAAI,WAAU;;0BACb,8OAAC;gBAAG,WAAU;0BAAwC;;;;;;0BACtD,8OAAC;gBAAE,WAAU;0BAA6B;;;;;;;;;;;;AAGhD"}}]
+}

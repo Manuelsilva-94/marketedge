@@ -1,0 +1,3 @@
+{
+  "/api/markets/trending/route": "app/api/markets/trending/route.js"
+}

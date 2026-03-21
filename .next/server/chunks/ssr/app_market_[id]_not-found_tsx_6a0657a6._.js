@@ -1,0 +1,3 @@
+module.exports=[85463,a=>{"use strict";var b=a.i(7997),c=a.i(95936),d=a.i(43917);function e(){return(0,b.jsxs)("div",{className:"container flex min-h-[60vh] flex-col items-center justify-center px-4 py-16",children:[(0,b.jsx)("h1",{className:"text-2xl font-semibold tracking-tight",children:"Market not found"}),(0,b.jsx)("p",{className:"mt-2 text-muted-foreground",children:"The market you're looking for doesn't exist or was removed."}),(0,b.jsx)(d.Button,{asChild:!0,className:"mt-8 bg-[#00ff88] text-[#0a0a0f] hover:bg-[#00ff88]/90",children:(0,b.jsx)(c.default,{href:"/search",children:"Back to Search"})})]})}a.s(["default",()=>e])}];
+
+//# sourceMappingURL=app_market_%5Bid%5D_not-found_tsx_6a0657a6._.js.map

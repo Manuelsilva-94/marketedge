@@ -1,3 +1,5 @@
 {
-  "/api/test/manifold/route": "app/api/test/manifold/route.js"
+  "/api/admin/match-backlog/route": "app/api/admin/match-backlog/route.js",
+  "/api/cron/discover-markets/route": "app/api/cron/discover-markets/route.js",
+  "/api/cron/match-new-markets/route": "app/api/cron/match-new-markets/route.js"
 }

@@ -14,6 +14,10 @@ function createPrismaClient() {
   return new PrismaClient({
     adapter,
     log: ['error', 'warn'],
+    transactionOptions: {
+      maxWait: 10000,  // Esperar hasta 10s para iniciar transacción
+      timeout: 30000   // Timeout de 30s por transacción
+    }
   });
 }
 

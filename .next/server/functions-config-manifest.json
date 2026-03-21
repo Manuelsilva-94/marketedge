@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "functions": {
+    "/_middleware": {
+      "runtime": "nodejs",
+      "matchers": [
+        {
+          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/dashboard(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(\\.json)?[\\/#\\?]?$",
+          "originalSource": "/dashboard/:path*"
+        }
+      ]
+    },
+    "/api/admin/match-backlog": {
+      "maxDuration": 300
+    },
+    "/api/arbitrage/opportunities": {
+      "maxDuration": 300
+    },
+    "/api/cron/arbitrage-scanner": {
+      "maxDuration": 300
+    },
+    "/api/cron/discover-markets": {
+      "maxDuration": 120
+    },
+    "/api/cron/full-sync-kalshi": {
+      "maxDuration": 600
+    },
+    "/api/cron/match-new-markets": {
+      "maxDuration": 300
+    },
+    "/api/cron/sync-active-markets": {
+      "maxDuration": 300
+    },
+    "/api/cron/sync-markets": {
+      "maxDuration": 600
+    },
+    "/api/test/kalshi-full": {
+      "maxDuration": 600
+    },
+    "/api/test/polymarket-full": {
+      "maxDuration": 600
+    },
+    "/api/test/polymarket-full-auto": {
+      "maxDuration": 600
+    },
+    "/api/test/polymarket-part1": {
+      "maxDuration": 300
+    },
+    "/api/test/polymarket-part2": {
+      "maxDuration": 300
+    }
+  }
+}

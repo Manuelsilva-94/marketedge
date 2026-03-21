@@ -4,6 +4,10 @@ import { KalshiService } from '@/lib/services/kalshi.service';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 404 });
+  }
+
   try {
     const service = new KalshiService();
 
@@ -20,8 +24,6 @@ export async function GET() {
       const normalized = service.normalizeMarket(response.markets[0]);
       console.log('✅ Normalized:', {
         question: normalized.question,
-        yesPrice: normalized.yesPrice,
-        noPrice: normalized.noPrice,
         volume24h: normalized.volume24h
       });
     }

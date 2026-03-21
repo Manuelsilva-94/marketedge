@@ -1,0 +1,313 @@
+{
+  "version": 3,
+  "pages404": true,
+  "appType": "app",
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "priority": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/api/auth/[...nextauth]",
+      "regex": "^/api/auth/(.+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPnextauth": "nxtPnextauth"
+      },
+      "namedRegex": "^/api/auth/(?<nxtPnextauth>.+?)(?:/)?$"
+    },
+    {
+      "page": "/api/compare/[id]",
+      "regex": "^/api/compare/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/compare/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/whales/[address]",
+      "regex": "^/api/whales/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPaddress": "nxtPaddress"
+      },
+      "namedRegex": "^/api/whales/(?<nxtPaddress>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/market/[id]",
+      "regex": "^/market/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/market/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/whales/[address]",
+      "regex": "^/whales/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPaddress": "nxtPaddress"
+      },
+      "namedRegex": "^/whales/(?<nxtPaddress>[^/]+?)(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_global-error",
+      "regex": "^/_global\\-error(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_global\\-error(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/api/admin/fix-kalshi-urls",
+      "regex": "^/api/admin/fix\\-kalshi\\-urls(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/fix\\-kalshi\\-urls(?:/)?$"
+    },
+    {
+      "page": "/api/admin/match-backlog",
+      "regex": "^/api/admin/match\\-backlog(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/match\\-backlog(?:/)?$"
+    },
+    {
+      "page": "/api/admin/semantic-index",
+      "regex": "^/api/admin/semantic\\-index(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/semantic\\-index(?:/)?$"
+    },
+    {
+      "page": "/api/arbitrage/live",
+      "regex": "^/api/arbitrage/live(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/arbitrage/live(?:/)?$"
+    },
+    {
+      "page": "/api/arbitrage/opportunities",
+      "regex": "^/api/arbitrage/opportunities(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/arbitrage/opportunities(?:/)?$"
+    },
+    {
+      "page": "/api/cron/arbitrage-scanner",
+      "regex": "^/api/cron/arbitrage\\-scanner(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/cron/arbitrage\\-scanner(?:/)?$"
+    },
+    {
+      "page": "/api/cron/discover-markets",
+      "regex": "^/api/cron/discover\\-markets(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/cron/discover\\-markets(?:/)?$"
+    },
+    {
+      "page": "/api/cron/full-sync-kalshi",
+      "regex": "^/api/cron/full\\-sync\\-kalshi(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/cron/full\\-sync\\-kalshi(?:/)?$"
+    },
+    {
+      "page": "/api/cron/match-new-markets",
+      "regex": "^/api/cron/match\\-new\\-markets(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/cron/match\\-new\\-markets(?:/)?$"
+    },
+    {
+      "page": "/api/cron/sync-active-markets",
+      "regex": "^/api/cron/sync\\-active\\-markets(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/cron/sync\\-active\\-markets(?:/)?$"
+    },
+    {
+      "page": "/api/cron/sync-markets",
+      "regex": "^/api/cron/sync\\-markets(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/cron/sync\\-markets(?:/)?$"
+    },
+    {
+      "page": "/api/dashboard",
+      "regex": "^/api/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dashboard(?:/)?$"
+    },
+    {
+      "page": "/api/dev/clear-db",
+      "regex": "^/api/dev/clear\\-db(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dev/clear\\-db(?:/)?$"
+    },
+    {
+      "page": "/api/dev/delete-platform",
+      "regex": "^/api/dev/delete\\-platform(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/dev/delete\\-platform(?:/)?$"
+    },
+    {
+      "page": "/api/markets/search",
+      "regex": "^/api/markets/search(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/markets/search(?:/)?$"
+    },
+    {
+      "page": "/api/markets/trending",
+      "regex": "^/api/markets/trending(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/markets/trending(?:/)?$"
+    },
+    {
+      "page": "/api/pins",
+      "regex": "^/api/pins(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/pins(?:/)?$"
+    },
+    {
+      "page": "/api/stats/overview",
+      "regex": "^/api/stats/overview(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/stats/overview(?:/)?$"
+    },
+    {
+      "page": "/api/test/comparison",
+      "regex": "^/api/test/comparison(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/test/comparison(?:/)?$"
+    },
+    {
+      "page": "/api/test/kalshi",
+      "regex": "^/api/test/kalshi(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/test/kalshi(?:/)?$"
+    },
+    {
+      "page": "/api/test/kalshi-full",
+      "regex": "^/api/test/kalshi\\-full(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/test/kalshi\\-full(?:/)?$"
+    },
+    {
+      "page": "/api/test/matching",
+      "regex": "^/api/test/matching(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/test/matching(?:/)?$"
+    },
+    {
+      "page": "/api/test/polymarket",
+      "regex": "^/api/test/polymarket(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/test/polymarket(?:/)?$"
+    },
+    {
+      "page": "/api/test/polymarket-full",
+      "regex": "^/api/test/polymarket\\-full(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/test/polymarket\\-full(?:/)?$"
+    },
+    {
+      "page": "/api/test/polymarket-full-auto",
+      "regex": "^/api/test/polymarket\\-full\\-auto(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/test/polymarket\\-full\\-auto(?:/)?$"
+    },
+    {
+      "page": "/api/test/polymarket-part1",
+      "regex": "^/api/test/polymarket\\-part1(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/test/polymarket\\-part1(?:/)?$"
+    },
+    {
+      "page": "/api/test/polymarket-part2",
+      "regex": "^/api/test/polymarket\\-part2(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/test/polymarket\\-part2(?:/)?$"
+    },
+    {
+      "page": "/api/test/search",
+      "regex": "^/api/test/search(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/test/search(?:/)?$"
+    },
+    {
+      "page": "/api/whales/leaderboard",
+      "regex": "^/api/whales/leaderboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/whales/leaderboard(?:/)?$"
+    },
+    {
+      "page": "/arbitrage",
+      "regex": "^/arbitrage(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/arbitrage(?:/)?$"
+    },
+    {
+      "page": "/compare",
+      "regex": "^/compare(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/compare(?:/)?$"
+    },
+    {
+      "page": "/dashboard",
+      "regex": "^/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/search",
+      "regex": "^/search(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/search(?:/)?$"
+    },
+    {
+      "page": "/whales",
+      "regex": "^/whales(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/whales(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments",
+    "clientParamParsing": false,
+    "dynamicRSCPrerender": false
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}
