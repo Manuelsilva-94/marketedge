@@ -42,7 +42,7 @@ export async function GET() {
     totalKalshiActive,
     withMatch,
     withoutMatch,
-    byCategory: byCategory.map(r => ({
+    byCategory: byCategory.map((r: { category: string | null; count: bigint }) => ({
       category: r.category ?? 'null',
       count: Number(r.count)
     }))
