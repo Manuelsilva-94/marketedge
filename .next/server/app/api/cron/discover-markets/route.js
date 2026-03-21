@@ -1,7 +1,7 @@
 var R=require("../../../../chunks/[turbopack]_runtime.js")("server/app/api/cron/discover-markets/route.js")
 R.c("server/chunks/_94455f0d._.js")
 R.c("server/chunks/[root-of-the-server]__6ac8ec31._.js")
-R.c("server/chunks/[root-of-the-server]__1a51be01._.js")
+R.c("server/chunks/[root-of-the-server]__81a5711b._.js")
 R.c("server/chunks/_next-internal_server_app_api_cron_discover-markets_route_actions_c2b0bec5.js")
 R.m(4634)
 module.exports=R.m(4634).exports

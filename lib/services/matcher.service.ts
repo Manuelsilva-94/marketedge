@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { Market } from '@prisma/client';
+import type { Market } from '@/lib/db-types';
 import { NormalizerService } from './normalizer.service';
 
 interface MatchResult {
@@ -201,15 +201,15 @@ export class MatcherService {
     // Extraer solo entidades reales para el pre-filtro (evita 1000 candidates genéricos)
     const entityKeywords = sourceMarket.question
       .split(/\s+/)
-      .filter((w) => /^[A-Z][a-z]/.test(w))
-      .map((w) => w.toLowerCase().replace(/[^a-z]/g, ''))
-      .filter((w) => w.length > 3 && !this.STOP_KEYWORDS.has(w))
+      .filter((w: string) => /^[A-Z][a-z]/.test(w))
+      .map((w: string) => w.toLowerCase().replace(/[^a-z]/g, ''))
+      .filter((w: string) => w.length > 3 && !this.STOP_KEYWORDS.has(w))
       .slice(0, 3);
 
     const fallbackKeywords = sourceMarket.question
       .toLowerCase()
       .split(/\s+/)
-      .filter((w) => w.length > 6 && !this.STOP_KEYWORDS.has(w))
+      .filter((w: string) => w.length > 6 && !this.STOP_KEYWORDS.has(w))
       .slice(0, 3);
 
     const searchKeywords =
@@ -228,7 +228,7 @@ export class MatcherService {
       where: {
         platform: { not: sourceMarket.platform },
         active: true,
-        AND: searchKeywords.map((kw) => ({
+        AND: searchKeywords.map((kw: string) => ({
           question: { contains: kw, mode: 'insensitive' as const }
         }))
       },
@@ -240,7 +240,7 @@ export class MatcherService {
     if (candidates.length > 0) {
       console.log(
         `[Matcher] First 3 candidates:`,
-        candidates.slice(0, 3).map((c) => ({ q: c.question, platform: c.platform }))
+        candidates.slice(0, 3).map((c: Market) => ({ q: c.question, platform: c.platform }))
       );
     }
     console.log(`[Matcher] Candidates after entity filter: ${candidates.length}`);
@@ -270,7 +270,7 @@ export class MatcherService {
     }
 
     const allScores = candidates
-      .map((c) => {
+      .map((c: Market) => {
         const cleanQ = c.question.includes(' — ') ? c.question.split(' — ')[0] : c.question;
         return {
           question: c.question,
@@ -283,11 +283,11 @@ export class MatcherService {
           ).score
         };
       })
-      .sort((a, b) => b.score - a.score)
+      .sort((a: { score: number }, b: { score: number }) => b.score - a.score)
       .slice(0, 5);
     console.log(`[Matcher] Top 5 scores:`, JSON.stringify(allScores, null, 2));
 
-    results.sort((a, b) => b.score - a.score);
+    results.sort((a: MatchResult, b: MatchResult) => b.score - a.score);
 
     console.log(`   ✅ Found ${results.length} matches above ${minScore}`);
 
@@ -325,7 +325,7 @@ export class MatcherService {
       }
     }
 
-    results.sort((a, b) => b.score - a.score);
+    results.sort((a: MatchResult, b: MatchResult) => b.score - a.score);
     return results;
   }
 

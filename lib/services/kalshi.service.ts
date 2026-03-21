@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { Platform } from '@prisma/client';
+import { Platform } from '@/lib/db-types';
 import { KalshiAuth } from './kalshi-auth';
 
 interface KalshiMarket {

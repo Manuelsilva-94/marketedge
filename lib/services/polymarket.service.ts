@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { Platform } from '@prisma/client';
+import { Platform } from '@/lib/db-types';
 
 interface PolymarketMarket {
   id: string;

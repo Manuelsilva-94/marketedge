@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { Market } from '@prisma/client';
+import type { Market } from '@/lib/db-types';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = 'llama-3.1-8b-instant';

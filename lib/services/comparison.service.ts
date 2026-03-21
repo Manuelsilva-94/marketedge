@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { Market, Platform } from '@prisma/client';
+import type { Market, Platform } from '@/lib/db-types';
 import { MatcherService } from './matcher.service';
 import { PolymarketService } from './polymarket.service';
 import { KalshiService } from './kalshi.service';

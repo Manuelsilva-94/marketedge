@@ -2,7 +2,7 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import { prisma } from '../lib/prisma';
-import { Platform } from '@prisma/client';
+import { Platform } from '@/lib/db-types';
 
 interface MarketData {
   platform: string;

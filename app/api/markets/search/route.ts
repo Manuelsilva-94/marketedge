@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Platform, Prisma } from '@prisma/client';
+import type { Platform } from '@/lib/db-types';
+import { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 

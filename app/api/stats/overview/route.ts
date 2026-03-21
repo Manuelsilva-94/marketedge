@@ -19,9 +19,10 @@ export async function GET() {
       })
     ]);
 
+    type PlatformGroup = { platform: string | null; _count: number };
     const polymarketCount =
-      byPlatform.find((p) => p.platform === 'POLYMARKET')?._count ?? 0;
-    const kalshiCount = byPlatform.find((p) => p.platform === 'KALSHI')?._count ?? 0;
+      byPlatform.find((p: PlatformGroup) => p.platform === 'POLYMARKET')?._count ?? 0;
+    const kalshiCount = byPlatform.find((p: PlatformGroup) => p.platform === 'KALSHI')?._count ?? 0;
     const totalVolume24h = volume._sum.volume24h ?? 0;
     const lastSyncedAt = lastSync?.lastSyncedAt?.toISOString() ?? null;
 
