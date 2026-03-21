@@ -225,30 +225,54 @@ export async function GET(req: NextRequest) {
     });
 
     // Normalizar para que polymarket siempre sea A y kalshi sea B
-    const confirmedPairs = verifiedPairs
-      .map((pair) => {
-        const poly = pair.marketA.platform === 'POLYMARKET' ? pair.marketA : pair.marketB;
-        const kalshi = pair.marketA.platform === 'KALSHI' ? pair.marketA : pair.marketB;
+    type VerifiedPair = (typeof verifiedPairs)[number];
+    interface ConfirmedPair {
+      polymarket: {
+        id: string;
+        question: string;
+        externalId: string;
+        slug: string | null;
+        volume24h: number;
+        url: string | null;
+      };
+      kalshiMarket: {
+        id: string;
+        externalId: string;
+        seriesId: string | null;
+        eventId: string | null;
+        slug: string | null;
+        volume24h: number;
+        url: string | null;
+      };
+      matchId: string;
+      matchScore: number;
+      matchType: 'STRICT';
+    }
+    const confirmedPairsWithNulls: (ConfirmedPair | null)[] = verifiedPairs.map((pair: VerifiedPair) => {
+      const poly = pair.marketA.platform === 'POLYMARKET' ? pair.marketA : pair.marketB;
+      const kalshi = pair.marketA.platform === 'KALSHI' ? pair.marketA : pair.marketB;
 
-        if (poly.platform !== 'POLYMARKET' || kalshi.platform !== 'KALSHI') return null;
+      if (poly.platform !== 'POLYMARKET' || kalshi.platform !== 'KALSHI') return null;
 
-        return {
-          polymarket: { ...poly, volume24h: poly.volume24h ?? 0 },
-          kalshiMarket: {
-            id: kalshi.id,
-            externalId: kalshi.externalId,
-            seriesId: kalshi.seriesId,
-            eventId: kalshi.eventId,
-            slug: kalshi.slug,
-            volume24h: kalshi.volume24h ?? 0,
-            url: kalshi.url
-          },
-          matchId: pair.id,
-          matchScore: pair.confidence,
-          matchType: 'STRICT' as const
-        };
-      })
-      .filter((p): p is NonNullable<typeof p> => p !== null);
+      return {
+        polymarket: { ...poly, volume24h: poly.volume24h ?? 0 },
+        kalshiMarket: {
+          id: kalshi.id,
+          externalId: kalshi.externalId,
+          seriesId: kalshi.seriesId,
+          eventId: kalshi.eventId,
+          slug: kalshi.slug,
+          volume24h: kalshi.volume24h ?? 0,
+          url: kalshi.url
+        },
+        matchId: pair.id,
+        matchScore: pair.confidence,
+        matchType: 'STRICT' as const
+      };
+    });
+    const confirmedPairs = confirmedPairsWithNulls.filter(
+      (p: ConfirmedPair | null): p is ConfirmedPair => p !== null
+    );
 
     console.log(`[Scanner] Loaded ${confirmedPairs.length} verified pairs from DB`);
 
@@ -257,14 +281,14 @@ export async function GET(req: NextRequest) {
     const MAX_PAIRS_TO_PRICE = 100;
 
     const filteredPairs = confirmedPairs
-      .filter((pair) => {
+      .filter((pair: ConfirmedPair) => {
         const polyVol = pair.polymarket.volume24h ?? 0;
         const kalshiVol = pair.kalshiMarket.volume24h ?? 0;
         // Excluir pares donde AMBOS tienen volumen 0 (markets resueltos/inactivos)
         // También excluir si el volumen combinado es menor a 100 (ruido)
         return (polyVol + kalshiVol) > 100;
       })
-      .sort((a, b) => {
+      .sort((a: ConfirmedPair, b: ConfirmedPair) => {
         const volA = (a.polymarket.volume24h ?? 0) + a.kalshiMarket.volume24h;
         const volB = (b.polymarket.volume24h ?? 0) + b.kalshiMarket.volume24h;
         return volB - volA;
@@ -286,7 +310,7 @@ export async function GET(req: NextRequest) {
         const batch = filteredPairs.slice(i, i + PRICE_CONCURRENCY);
 
         await Promise.allSettled(
-          batch.map(async (pair) => {
+          batch.map(async (pair: ConfirmedPair) => {
             try {
               const [polyLive, kalshiLive] = await Promise.all([
                 polyService.getLiveMarket({
@@ -314,7 +338,7 @@ export async function GET(req: NextRequest) {
               ) {
                 // Buscar la categoría del market de Kalshi en el par
                 const kalshiDbMarket = verifiedPairs.find(
-                  (p) =>
+                  (p: VerifiedPair) =>
                     (p.marketA.platform === 'KALSHI' && p.marketA.id === pair.kalshiMarket.id) ||
                     (p.marketB.platform === 'KALSHI' && p.marketB.id === pair.kalshiMarket.id)
                 );

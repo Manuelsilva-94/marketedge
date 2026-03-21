@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import type { Market } from '@/lib/db-types';
 import { MatcherService } from '@/lib/services/matcher.service';
 import { SemanticMatcherService } from '@/lib/services/semantic-matcher.service';
 
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
       dryRun: true,
       wouldProcess: kalshiMarkets.length,
       offset_next: offset + kalshiMarkets.length,
-      sample: kalshiMarkets.slice(0, 5).map(m => ({
+      sample: (kalshiMarkets as Market[]).slice(0, 5).map((m: Market) => ({
         question: m.question,
         category: m.category,
         volume24h: m.volume24h
