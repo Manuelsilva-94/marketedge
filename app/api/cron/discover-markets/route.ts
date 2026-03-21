@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Platform } from '@prisma/client';
+import { Platform } from '@/lib/db-types';
 import { KalshiService } from '@/lib/services/kalshi.service';
 import { PolymarketService } from '@/lib/services/polymarket.service';
 
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
         where: { platform: 'KALSHI', externalId: { in: tickers } },
         select: { externalId: true }
       });
-      const existingSet = new Set(existing.map(m => m.externalId));
+      const existingSet = new Set(existing.map((m: { externalId: string }) => m.externalId));
 
       const newMarkets = allMarkets.filter(({ market }) => {
         const ticker = (market as { ticker: string }).ticker;
@@ -148,7 +148,7 @@ export async function GET(req: NextRequest) {
           where: { platform: 'POLYMARKET', externalId: { in: externalIds } },
           select: { externalId: true }
         });
-        const existingSet = new Set(existing.map(m => m.externalId));
+        const existingSet = new Set(existing.map((m: { externalId: string }) => m.externalId));
 
         const newMarkets = allMarkets.filter(({ raw }) => {
           const id = String(raw.id ?? raw.conditionId ?? raw.slug ?? '');

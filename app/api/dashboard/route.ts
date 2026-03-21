@@ -16,15 +16,16 @@ export async function GET() {
     orderBy: { createdAt: 'desc' }
   });
 
-  const arbitragePins = pins.filter(p => p.type === 'ARBITRAGE');
-  const whalePins = pins.filter(p => p.type === 'WHALE');
-  const comparisonPins = pins.filter(p => p.type === 'COMPARISON');
+  type PinRow = { type: string; targetId: string; createdAt: Date; notes: string | null };
+  const arbitragePins = pins.filter((p: PinRow) => p.type === 'ARBITRAGE');
+  const whalePins = pins.filter((p: PinRow) => p.type === 'WHALE');
+  const comparisonPins = pins.filter((p: PinRow) => p.type === 'COMPARISON');
 
   // Arbitrage: buscar oportunidades activas pineadas
   const pinnedArbitrage = arbitragePins.length > 0
     ? await prisma.arbitrageOpportunity.findMany({
         where: {
-          matchId: { in: arbitragePins.map(p => p.targetId) },
+          matchId: { in: arbitragePins.map((p: PinRow) => p.targetId) },
           active: true
         },
         include: {
@@ -41,7 +42,7 @@ export async function GET() {
 
   // Whales: buscar datos de la tabla Market (posiciones abiertas no están en DB)
   // Solo devolvemos los addresses pineados
-  const pinnedWhales = whalePins.map(p => ({
+  const pinnedWhales = whalePins.map((p: PinRow) => ({
     address: p.targetId,
     pinnedAt: p.createdAt,
     notes: p.notes
@@ -49,7 +50,7 @@ export async function GET() {
 
   // Comparisons: el targetId tiene formato "marketAId:marketBId"
   const pinnedComparisons = await Promise.all(
-    comparisonPins.map(async (pin) => {
+    comparisonPins.map(async (pin: PinRow) => {
       const [marketAId, marketBId] = pin.targetId.split(':');
       if (!marketAId || !marketBId) return null;
       const [marketA, marketB] = await Promise.all([
@@ -78,7 +79,7 @@ export async function GET() {
     pinnedComparisons,
     stats: {
       totalArbitrage: arbitragePins.length,
-      activeArbitrage: pinnedArbitrage.filter(a => a.active).length,
+      activeArbitrage: pinnedArbitrage.filter((a: { active: boolean }) => a.active).length,
       totalWhales: whalePins.length,
       totalComparisons: comparisonPins.length
     }

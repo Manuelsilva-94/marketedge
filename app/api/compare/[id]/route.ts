@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ComparisonService } from '@/lib/services/comparison.service';
-import { Platform } from '@prisma/client';
+import type { Platform } from '@/lib/db-types';
 
 export const dynamic = 'force-dynamic';
 

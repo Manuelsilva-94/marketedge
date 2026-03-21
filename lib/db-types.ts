@@ -17,3 +17,5 @@ export const PinType = {
   ARBITRAGE: 'ARBITRAGE',
   COMPARISON: 'COMPARISON'
 } as const satisfies Record<string, PinType>;
+
+export type MarketWhereInput = Parameters<typeof prisma.market.findMany>[0] extends { where?: infer W } ? W : object;

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import type { Platform } from '@/lib/db-types';
-import { Prisma } from '@prisma/client';
+import type { MarketWhereInput, Platform } from '@/lib/db-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,13 +67,13 @@ export async function GET(request: Request) {
 
     const [markets, total] = await Promise.all([
       prisma.market.findMany({
-        where: where as Prisma.MarketWhereInput,
+        where: where as MarketWhereInput,
         orderBy,
         take: limit,
         skip: offset,
         select
       }),
-      prisma.market.count({ where: where as Prisma.MarketWhereInput })
+      prisma.market.count({ where: where as MarketWhereInput })
     ]);
 
     return NextResponse.json({

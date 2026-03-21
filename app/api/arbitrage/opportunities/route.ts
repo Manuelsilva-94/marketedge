@@ -1,6 +1,6 @@
   import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Platform } from '@prisma/client';
+import type { Platform } from '@/lib/db-types';
 import { ComparisonService } from '@/lib/services/comparison.service';
 import { PolymarketService } from '@/lib/services/polymarket.service';
 import { KalshiService } from '@/lib/services/kalshi.service';

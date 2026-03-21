@@ -81,16 +81,18 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    // Normalizar: poly siempre es poly, kalshi siempre es kalshi
-    const pairs = verifiedPairs
-      .map((pair) => {
+    const pairsWithNulls = verifiedPairs.map(
+      (pair: (typeof verifiedPairs)[number]) => {
         const poly = pair.marketA.platform === 'POLYMARKET' ? pair.marketA : pair.marketB;
         const kalshi = pair.marketA.platform === 'KALSHI' ? pair.marketA : pair.marketB;
         if (poly.platform !== 'POLYMARKET' || kalshi.platform !== 'KALSHI') return null;
         return { matchId: pair.id, poly, kalshi };
-      })
-      .filter((p): p is NonNullable<typeof p> => p !== null)
-      .filter((p) => (p.poly.volume24h ?? 0) + (p.kalshi.volume24h ?? 0) > 100);
+      }
+    );
+    type PairItem = NonNullable<(typeof pairsWithNulls)[number]>;
+    const pairs = pairsWithNulls
+      .filter((p: PairItem | null): p is PairItem => p !== null)
+      .filter((p: PairItem) => (p.poly.volume24h ?? 0) + (p.kalshi.volume24h ?? 0) > 100);
 
     console.log(`[CronScanner] ${pairs.length} pairs to scan`);
 
@@ -104,7 +106,7 @@ export async function GET(req: NextRequest) {
       const batch = pairs.slice(i, i + BATCH_SIZE);
 
       await Promise.allSettled(
-        batch.map(async (pair) => {
+        batch.map(async (pair: PairItem) => {
           try {
             const [polyLive, kalshiLive] = await Promise.all([
               polyService.getLiveMarket({
@@ -159,7 +161,7 @@ export async function GET(req: NextRequest) {
 
     for (const [matchId, data] of detectedThisScan.entries()) {
       // Obtener el kalshi market id para este matchId
-      const pair = pairs.find((p) => p.matchId === matchId);
+      const pair = pairs.find((p: PairItem) => p.matchId === matchId);
       if (!pair) continue;
       const kalshiId = pair.kalshi.id;
 
@@ -191,7 +193,8 @@ export async function GET(req: NextRequest) {
       select: { id: true, matchId: true }
     });
 
-    const activeMatchIds = new Set(activeInDb.map((o) => o.matchId));
+    type ActiveOpp = { id: string; matchId: string };
+    const activeMatchIds = new Set(activeInDb.map((o: ActiveOpp) => o.matchId));
 
     // 3b: Nuevas oportunidades (detectadas pero no en DB activa)
     for (const [matchId, data] of finalScan.entries()) {
@@ -252,7 +255,7 @@ export async function GET(req: NextRequest) {
         }
       } else {
         // Actualizar precio y ROI de oportunidad existente
-        const existing = activeInDb.find((o) => o.matchId === matchId);
+        const existing = activeInDb.find((o: ActiveOpp) => o.matchId === matchId);
         if (existing) {
           await prisma.arbitrageOpportunity.update({
             where: { id: existing.id },
