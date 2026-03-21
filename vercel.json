@@ -1,26 +1,6 @@
 {
   "crons": [
     {
-      "path": "/api/cron/sync-markets",
-      "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron/arbitrage-scanner",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/sync-active-markets",
-      "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/cron/discover-markets",
-      "schedule": "0 */2 * * *"
-    },
-    {
-      "path": "/api/cron/match-new-markets",
-      "schedule": "30 */6 * * *"
-    },
-    {
       "path": "/api/cron/full-sync-kalshi",
       "schedule": "0 3 * * 0"
     }
