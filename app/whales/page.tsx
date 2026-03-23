@@ -1,12 +1,8 @@
 import { WhaleFilters } from '@/components/whales/WhaleFilters';
 import { WhaleListWithPins } from '@/app/whales/WhaleListWithPins';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { headers } from 'next/headers';
 import type { LeaderboardResponse } from '@/app/api/whales/leaderboard/route';
-
-const baseUrl =
-  process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.NEXT_PUBLIC_URL ?? 'http://localhost:3000';
 
 interface WhalesPageProps {
   searchParams: Promise<{
@@ -17,6 +13,19 @@ interface WhalesPageProps {
 }
 
 export default async function WhalesPage({ searchParams }: WhalesPageProps) {
+  const h = await headers();
+  const host = h.get('x-forwarded-host') ?? h.get('host');
+  const proto = h.get('x-forwarded-proto') ?? 'https';
+  const requestBaseUrl = host ? `${proto}://${host}` : null;
+  const baseUrl =
+    process.env.NEXT_PUBLIC_URL ??
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : null) ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ??
+    requestBaseUrl ??
+    'http://localhost:3000';
+
   const params = await searchParams;
   const period = params.period === '30d' ? '30d' : '7d';
   const sort = params.sort ?? 'volume';

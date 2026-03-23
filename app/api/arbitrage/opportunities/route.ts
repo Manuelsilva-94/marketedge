@@ -142,6 +142,8 @@ export interface ArbitrageOpportunitiesResponse {
   count: number;
   scannedPairs: number;
   diagnostics?: {
+    kalshiReady: boolean;
+    kalshiInitError: string | null;
     pricedPairs: number;
     skippedIncompleteQuotes: number;
     priceFetchErrors: number;
@@ -170,10 +172,12 @@ export async function GET(req: NextRequest) {
 
   const polyService = new PolymarketService();
   let kalshiService: KalshiService | null = null;
+  let kalshiInitError: string | null = null;
   try {
     kalshiService = new KalshiService();
-  } catch {
-    // Kalshi auth not configured
+  } catch (err) {
+    kalshiInitError = err instanceof Error ? err.message : 'Unknown Kalshi init error';
+    console.warn('[Scanner] KalshiService unavailable:', kalshiInitError);
   }
 
   const select = {
@@ -460,6 +464,8 @@ export async function GET(req: NextRequest) {
       ...(debug
         ? {
             diagnostics: {
+              kalshiReady: Boolean(kalshiService),
+              kalshiInitError,
               pricedPairs,
               skippedIncompleteQuotes,
               priceFetchErrors,
