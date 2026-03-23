@@ -4,6 +4,7 @@ import { ComparisonService } from '@/lib/services/comparison.service';
 import type { Platform } from '@/lib/db-types';
 
 export const dynamic = 'force-dynamic';
+export const preferredRegion = 'iad1';
 
 export interface CompareApiResponse {
   market: {

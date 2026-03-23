@@ -15,6 +15,12 @@ interface KalshiMarket {
   no_bid?: number;
   no_ask?: number;
   last_price?: number;
+  yes_bid_dollars?: string;
+  yes_ask_dollars?: string;
+  no_bid_dollars?: string;
+  no_ask_dollars?: string;
+  last_price_dollars?: string;
+  previous_price_dollars?: string;
   volume?: number;
   volume_24h?: number;
   liquidity?: number;
@@ -155,16 +161,44 @@ export class KalshiService {
 
       const { market: kalshiMarket } = (await response.json()) as { market: KalshiMarket };
 
-      // Kalshi usa yes_bid/yes_ask en centavos (0-100)
-      const yesBid = (kalshiMarket.yes_bid ?? 50) / 100;
-      const yesAsk = (kalshiMarket.yes_ask ?? 50) / 100;
-      const yesPrice = (yesBid + yesAsk) / 2;
-      const noPrice = 1 - yesPrice;
+      const parsePrice = (cents?: number, dollars?: string): number | null => {
+        if (typeof cents === 'number' && Number.isFinite(cents)) return cents / 100;
+        if (typeof dollars === 'string') {
+          const parsed = parseFloat(dollars);
+          if (Number.isFinite(parsed)) return parsed;
+        }
+        return null;
+      };
+
+      // Usar precios ejecutables (ask). Soportar formato en centavos y *_dollars.
+      const yesAsk = parsePrice(kalshiMarket.yes_ask, kalshiMarket.yes_ask_dollars);
+      const noAsk = parsePrice(kalshiMarket.no_ask, kalshiMarket.no_ask_dollars);
+      const yesBid = parsePrice(kalshiMarket.yes_bid, kalshiMarket.yes_bid_dollars);
+      const noBid = parsePrice(kalshiMarket.no_bid, kalshiMarket.no_bid_dollars);
+      const lastPrice = parsePrice(kalshiMarket.last_price, kalshiMarket.last_price_dollars)
+        ?? (typeof kalshiMarket.previous_price_dollars === 'string'
+          ? parseFloat(kalshiMarket.previous_price_dollars)
+          : null);
+
+      // Fallback: ask -> midpoint(bid/ask) -> last_price.
+      const yesMid = yesAsk != null && yesBid != null ? (yesAsk + yesBid) / 2 : null;
+      const noMid = noAsk != null && noBid != null ? (noAsk + noBid) / 2 : null;
+      const yesPrice = yesAsk ?? yesMid ?? lastPrice;
+      const noPrice = noAsk ?? noMid ?? (lastPrice != null ? 1 - lastPrice : null);
+
+      if (yesPrice == null || noPrice == null) {
+        console.warn(
+          `[Kalshi] Incomplete quotes for ${market.externalId} (yes_ask=${kalshiMarket.yes_ask ?? kalshiMarket.yes_ask_dollars}, no_ask=${kalshiMarket.no_ask ?? kalshiMarket.no_ask_dollars}, yes_bid=${kalshiMarket.yes_bid ?? kalshiMarket.yes_bid_dollars}, no_bid=${kalshiMarket.no_bid ?? kalshiMarket.no_bid_dollars}, last=${kalshiMarket.last_price ?? kalshiMarket.last_price_dollars})`
+        );
+        return null;
+      }
 
       // Kalshi fee: 7% del profit
       const effectiveYesPrice = yesPrice + 0.07 * (1 - yesPrice);
 
-      console.log(`[Kalshi] ${market.externalId}: yes=${yesPrice.toFixed(3)}, no=${noPrice.toFixed(3)}`);
+      console.log(
+        `[Kalshi] ${market.externalId}: yes=${yesPrice.toFixed(3)} (ask=${yesAsk?.toFixed(3) ?? 'n/a'}), no=${noPrice.toFixed(3)} (ask=${noAsk?.toFixed(3) ?? 'n/a'})`
+      );
 
       return {
         yesPrice,

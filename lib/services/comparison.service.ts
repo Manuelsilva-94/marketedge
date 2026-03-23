@@ -104,7 +104,12 @@ export class ComparisonService {
     baseMarket: { yesPrice: number; noPrice: number; platform: Platform },
     matchMarket: { yesPrice: number; noPrice: number; platform: Platform }
   ): ArbitrageResult {
-    if (!baseMarket.yesPrice || !matchMarket.yesPrice) {
+    if (
+      baseMarket.yesPrice == null ||
+      baseMarket.noPrice == null ||
+      matchMarket.yesPrice == null ||
+      matchMarket.noPrice == null
+    ) {
       return {
         detected: false,
         roi: null,
@@ -136,9 +141,9 @@ export class ComparisonService {
     }
 
     const baseYes = baseMarket.yesPrice;
-    const baseNo = baseMarket.noPrice ?? 1 - baseYes;
+    const baseNo = baseMarket.noPrice;
     const matchYes = matchMarket.yesPrice;
-    const matchNo = matchMarket.noPrice ?? 1 - matchYes;
+    const matchNo = matchMarket.noPrice;
 
     const baseEffYes = this.calculateEffectivePrice(baseYes, baseMarket.platform);
     const baseEffNo = this.calculateEffectivePrice(baseNo, baseMarket.platform);
@@ -236,7 +241,11 @@ export class ComparisonService {
   }): ArbitrageResult {
     const { sourceMarket, matches } = comparison;
 
-    if (!sourceMarket.yesPrice || matches.length === 0) {
+    if (
+      sourceMarket.yesPrice == null ||
+      sourceMarket.noPrice == null ||
+      matches.length === 0
+    ) {
       return {
         detected: false,
         roi: null,
@@ -249,7 +258,7 @@ export class ComparisonService {
 
     const base = {
       yesPrice: sourceMarket.yesPrice,
-      noPrice: sourceMarket.noPrice ?? 1 - sourceMarket.yesPrice,
+      noPrice: sourceMarket.noPrice,
       platform: sourceMarket.platform
     };
 
@@ -263,10 +272,10 @@ export class ComparisonService {
     };
 
     for (const m of matches) {
-      if (!m.yesPrice) continue;
+      if (m.yesPrice == null || m.noPrice == null) continue;
       const match = {
         yesPrice: m.yesPrice,
-        noPrice: m.noPrice ?? 1 - m.yesPrice,
+        noPrice: m.noPrice,
         platform: m.platform
       };
       const result = this.detectArbitragePair(base, match);

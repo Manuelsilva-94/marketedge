@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 10 min
+export const preferredRegion = 'iad1';
 
 export async function GET(request: Request) {
   try {

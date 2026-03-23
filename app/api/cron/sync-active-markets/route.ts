@@ -5,6 +5,7 @@ import { KalshiService } from '@/lib/services/kalshi.service';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
+export const preferredRegion = 'iad1';
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization');

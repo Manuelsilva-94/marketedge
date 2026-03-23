@@ -7,6 +7,7 @@ import { KalshiService } from '@/lib/services/kalshi.service';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
+export const preferredRegion = 'iad1';
 
 const TIMEOUT_MS = 55_000;
 
@@ -324,7 +325,17 @@ export async function GET(req: NextRequest) {
                 })
               ]);
 
-              if (!polyLive?.yesPrice || !kalshiLive?.yesPrice) return;
+              if (
+                polyLive?.yesPrice == null ||
+                polyLive?.noPrice == null ||
+                kalshiLive?.yesPrice == null ||
+                kalshiLive?.noPrice == null
+              ) {
+                console.log(
+                  `[Scanner] Skipping ${pair.matchId}: incomplete quotes (poly=${polyLive ? `${polyLive.yesPrice}/${polyLive.noPrice}` : 'null'}, kalshi=${kalshiLive ? `${kalshiLive.yesPrice}/${kalshiLive.noPrice}` : 'null'})`
+                );
+                return;
+              }
 
               const arbitrage = comparisonService.detectArbitrage({
                 sourceMarket: { ...polyLive, platform: 'POLYMARKET' },
@@ -336,6 +347,9 @@ export async function GET(req: NextRequest) {
                 arbitrage.roi !== null &&
                 arbitrage.roi / 100 >= minRoiFraction
               ) {
+                console.log(
+                  `[Scanner] Opportunity ${pair.matchId}: poly=${(polyLive.yesPrice * 100).toFixed(1)}c/${(polyLive.noPrice * 100).toFixed(1)}c kalshi=${(kalshiLive.yesPrice * 100).toFixed(1)}c/${(kalshiLive.noPrice * 100).toFixed(1)}c roi=${arbitrage.roi.toFixed(2)}%`
+                );
                 // Buscar la categoría del market de Kalshi en el par
                 const kalshiDbMarket = verifiedPairs.find(
                   (p: VerifiedPair) =>

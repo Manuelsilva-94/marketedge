@@ -8,20 +8,8 @@
           "exportedName": "$$RSC_SERVER_ACTION_0",
           "filename": "components/layout/Navbar.tsx"
         },
-        "app/dashboard/page": {
-          "moduleId": "[project]/.next-internal/server/app/dashboard/page/actions.js { ACTIONS_MODULE0 => \"[project]/components/layout/Navbar.tsx [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
-          "async": true,
-          "exportedName": "$$RSC_SERVER_ACTION_0",
-          "filename": "components/layout/Navbar.tsx"
-        },
-        "app/login/page": {
-          "moduleId": "[project]/.next-internal/server/app/login/page/actions.js { ACTIONS_MODULE0 => \"[project]/components/layout/Navbar.tsx [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/app/login/page.tsx [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
-          "async": true,
-          "exportedName": "$$RSC_SERVER_ACTION_0",
-          "filename": "components/layout/Navbar.tsx"
-        },
-        "app/page": {
-          "moduleId": "[project]/.next-internal/server/app/page/actions.js { ACTIONS_MODULE0 => \"[project]/components/layout/Navbar.tsx [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+        "app/compare/page": {
+          "moduleId": "[project]/.next-internal/server/app/compare/page/actions.js { ACTIONS_MODULE0 => \"[project]/components/layout/Navbar.tsx [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
           "async": true,
           "exportedName": "$$RSC_SERVER_ACTION_0",
           "filename": "components/layout/Navbar.tsx"
@@ -41,28 +29,11 @@
       },
       "layer": {
         "app/arbitrage/page": "rsc",
-        "app/dashboard/page": "rsc",
-        "app/login/page": "rsc",
-        "app/page": "rsc",
+        "app/compare/page": "rsc",
         "app/search/page": "rsc",
         "app/whales/page": "rsc"
       },
       "filename": "components/layout/Navbar.tsx",
-      "exportedName": "$$RSC_SERVER_ACTION_0"
-    },
-    "0001a69c7ec0551e7424e58dca1640d134742c08a1": {
-      "workers": {
-        "app/login/page": {
-          "moduleId": "[project]/.next-internal/server/app/login/page/actions.js { ACTIONS_MODULE0 => \"[project]/components/layout/Navbar.tsx [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/app/login/page.tsx [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
-          "async": true,
-          "exportedName": "$$RSC_SERVER_ACTION_0",
-          "filename": "app/login/page.tsx"
-        }
-      },
-      "layer": {
-        "app/login/page": "rsc"
-      },
-      "filename": "app/login/page.tsx",
       "exportedName": "$$RSC_SERVER_ACTION_0"
     }
   },

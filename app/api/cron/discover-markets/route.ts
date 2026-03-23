@@ -6,6 +6,7 @@ import { PolymarketService } from '@/lib/services/polymarket.service';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
+export const preferredRegion = 'iad1';
 
 const CRON_SECRET = process.env.CRON_SECRET;
 

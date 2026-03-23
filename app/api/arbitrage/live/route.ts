@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import type { Platform } from '@/lib/db-types';
 
 export const dynamic = 'force-dynamic';
+export const preferredRegion = 'iad1';
 
 interface ArbitrageOpportunity {
   id: string;

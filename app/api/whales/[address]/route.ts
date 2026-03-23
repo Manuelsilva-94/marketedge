@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { WhaleService } from '@/lib/services/whale.service';
 
 export const dynamic = 'force-dynamic';
+export const preferredRegion = 'iad1';
 
 export interface WhaleProfileApiResponse {
   address: string;

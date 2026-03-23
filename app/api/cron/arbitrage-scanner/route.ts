@@ -7,6 +7,7 @@ import { KalshiService } from '@/lib/services/kalshi.service';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
+export const preferredRegion = 'iad1';
 
 function effectiveYesPrice(price: number, platform: 'POLYMARKET' | 'KALSHI'): number {
   if (platform === 'KALSHI') return price + 0.07 * price * (1 - price);

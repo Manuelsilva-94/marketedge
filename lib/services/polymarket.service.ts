@@ -113,16 +113,34 @@ export class PolymarketService {
 
       console.log('[Polymarket] Raw outcomePrices:', data.outcomePrices);
 
-      // outcomePrices viene como string JSON: "[\"0.15\",\"0.85\"]" o como array
-      let prices: number[] = [];
-      const op = data.outcomePrices;
-      if (op != null) {
-        const raw = typeof op === 'string' ? JSON.parse(op) : op;
-        prices = (Array.isArray(raw) ? raw : []).map((p: string | number) => parseFloat(String(p)));
-      }
+      const parsePriceArray = (value: unknown): number[] => {
+        if (value == null) return [];
+        try {
+          const raw = typeof value === 'string' ? JSON.parse(value) : value;
+          if (!Array.isArray(raw)) return [];
+          return raw
+            .map((p: string | number) => parseFloat(String(p)))
+            .filter((p) => Number.isFinite(p));
+        } catch {
+          return [];
+        }
+      };
 
-      const yesPrice = prices[0] ?? 0.5;
-      const noPrice = prices[1] ?? 1 - yesPrice;
+      // Preferir asks ejecutables si vienen en payload; fallback a outcomePrices.
+      const askPrices = parsePriceArray((data as Record<string, unknown>).bestAsk);
+      const outcomePrices = parsePriceArray(data.outcomePrices);
+
+      const yesPrice = askPrices[0] ?? outcomePrices[0] ?? null;
+      const noPrice = askPrices[1] ?? outcomePrices[1] ?? null;
+
+      if (yesPrice == null || noPrice == null) {
+        console.warn(
+          `[Polymarket] Incomplete quotes for ${market.externalId} (bestAsk=${JSON.stringify(
+            (data as Record<string, unknown>).bestAsk
+          )}, outcomePrices=${JSON.stringify(data.outcomePrices)})`
+        );
+        return null;
+      }
       const effectiveYesPrice = yesPrice * 1.02;
 
       return {
