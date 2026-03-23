@@ -363,8 +363,9 @@ export async function GET(req: NextRequest) {
                 arbitrage.roi / 100 >= minRoiFraction;
 
               if (passesMinRoi) {
+                const roi = arbitrage.roi as number;
                 console.log(
-                  `[Scanner] Opportunity ${pair.matchId}: poly=${(polyLive.yesPrice * 100).toFixed(1)}c/${(polyLive.noPrice * 100).toFixed(1)}c kalshi=${(kalshiLive.yesPrice * 100).toFixed(1)}c/${(kalshiLive.noPrice * 100).toFixed(1)}c roi=${arbitrage.roi.toFixed(2)}%`
+                  `[Scanner] Opportunity ${pair.matchId}: poly=${(polyLive.yesPrice * 100).toFixed(1)}c/${(polyLive.noPrice * 100).toFixed(1)}c kalshi=${(kalshiLive.yesPrice * 100).toFixed(1)}c/${(kalshiLive.noPrice * 100).toFixed(1)}c roi=${roi.toFixed(2)}%`
                 );
                 // Buscar la categoría del market de Kalshi en el par
                 const kalshiDbMarket = verifiedPairs.find(
@@ -386,7 +387,7 @@ export async function GET(req: NextRequest) {
                   matchId: pair.matchId,
                   question: pair.polymarket.question,
                   category: resolvedCategory,
-                  roi: arbitrage.roi,
+                  roi,
                   matchScore: pair.matchScore,
                   matchType: pair.matchType as MatchType,
                   polymarket: {
