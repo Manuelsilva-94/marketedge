@@ -4,7 +4,7 @@ import { KalshiService } from '@/lib/services/kalshi.service';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 600; // 10 min
+export const maxDuration = 300; // 10 min
 
 export async function GET(request: Request) {
   try {

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { KalshiService } from '@/lib/services/kalshi.service';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 600; // 10 min
+export const maxDuration = 300; // 10 min
 
 export async function GET() {
   if (process.env.NODE_ENV === 'production') {

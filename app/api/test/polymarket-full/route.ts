@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { PolymarketService } from '@/lib/services/polymarket.service';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 600; // 10 min
+export const maxDuration = 300; // 10 min
 
 export async function GET() {
   if (process.env.NODE_ENV === 'production') {
