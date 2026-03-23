@@ -141,6 +141,13 @@ export interface ArbitrageOpportunitiesResponse {
   }>;
   count: number;
   scannedPairs: number;
+  diagnostics?: {
+    pricedPairs: number;
+    skippedIncompleteQuotes: number;
+    priceFetchErrors: number;
+    belowMinRoi: number;
+    deduplicatedOut: number;
+  };
   generatedAt: string;
 }
 
@@ -156,6 +163,7 @@ export async function GET(req: NextRequest) {
   const minRoiParam = searchParams.get('minRoi') ?? '0.01';
   const category = searchParams.get('category') || undefined;
   const sort = searchParams.get('sort') ?? 'roi';
+  const debug = searchParams.get('debug') === '1';
   const limitParam = searchParams.get('limit') ?? '20';
   const limit = Math.min(Math.max(parseInt(limitParam, 10) || 20, 1), 50);
   const minRoiPercent = parseFloat(minRoiParam) * 100;
@@ -302,6 +310,10 @@ export async function GET(req: NextRequest) {
 
     // PASO 2: Fetchear precios en batches de CONCURRENCY
     const opportunities: ArbitrageOpportunitiesResponse['opportunities'] = [];
+    let pricedPairs = 0;
+    let skippedIncompleteQuotes = 0;
+    let priceFetchErrors = 0;
+    let belowMinRoi = 0;
     const minRoiFraction = parseFloat(minRoiParam);
 
     if (kalshiService) {
@@ -331,22 +343,26 @@ export async function GET(req: NextRequest) {
                 kalshiLive?.yesPrice == null ||
                 kalshiLive?.noPrice == null
               ) {
+                skippedIncompleteQuotes += 1;
                 console.log(
                   `[Scanner] Skipping ${pair.matchId}: incomplete quotes (poly=${polyLive ? `${polyLive.yesPrice}/${polyLive.noPrice}` : 'null'}, kalshi=${kalshiLive ? `${kalshiLive.yesPrice}/${kalshiLive.noPrice}` : 'null'})`
                 );
                 return;
               }
 
+              pricedPairs += 1;
+
               const arbitrage = comparisonService.detectArbitrage({
                 sourceMarket: { ...polyLive, platform: 'POLYMARKET' },
                 matches: [{ ...kalshiLive, platform: 'KALSHI' }]
               });
 
-              if (
+              const passesMinRoi =
                 arbitrage.detected &&
                 arbitrage.roi !== null &&
-                arbitrage.roi / 100 >= minRoiFraction
-              ) {
+                arbitrage.roi / 100 >= minRoiFraction;
+
+              if (passesMinRoi) {
                 console.log(
                   `[Scanner] Opportunity ${pair.matchId}: poly=${(polyLive.yesPrice * 100).toFixed(1)}c/${(polyLive.noPrice * 100).toFixed(1)}c kalshi=${(kalshiLive.yesPrice * 100).toFixed(1)}c/${(kalshiLive.noPrice * 100).toFixed(1)}c roi=${arbitrage.roi.toFixed(2)}%`
                 );
@@ -397,9 +413,11 @@ export async function GET(req: NextRequest) {
                   totalVolume24h: (pair.polymarket.volume24h ?? 0) + pair.kalshiMarket.volume24h,
                   detectedAt: new Date().toISOString()
                 });
+              } else if (arbitrage.detected && arbitrage.roi !== null) {
+                belowMinRoi += 1;
               }
             } catch {
-              // silenciar errores individuales de precio
+              priceFetchErrors += 1;
             }
           })
         );
@@ -432,11 +450,23 @@ export async function GET(req: NextRequest) {
     });
 
     const top = deduplicated.slice(0, limit);
+    const deduplicatedOut = opportunities.length - deduplicated.length;
 
     return {
       opportunities: top,
       count: top.length,
       scannedPairs,
+      ...(debug
+        ? {
+            diagnostics: {
+              pricedPairs,
+              skippedIncompleteQuotes,
+              priceFetchErrors,
+              belowMinRoi,
+              deduplicatedOut
+            }
+          }
+        : {}),
       generatedAt
     };
   })();
