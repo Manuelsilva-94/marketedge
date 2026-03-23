@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import type { WhaleProfileApiResponse } from '@/app/api/whales/[address]/route';
 
 const baseUrl =
-  process.env.NEXT_PUBLIC_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXT_PUBLIC_URL ?? 'http://localhost:3000';
 
 interface WhaleDetailPageProps {
   params: Promise<{ address: string }>;

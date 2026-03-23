@@ -1803,6 +1803,10 @@ body {
   color: rgb(251 191 36 / var(--tw-text-opacity, 1));
 }
 
+.text-amber-400\/80 {
+  color: #fbbf24cc;
+}
+
 .text-amber-500\/90 {
   color: #f59e0be6;
 }
@@ -1897,10 +1901,6 @@ body {
 .text-yellow-400 {
   --tw-text-opacity: 1;
   color: rgb(250 204 21 / var(--tw-text-opacity, 1));
-}
-
-.text-amber-400\/80 {
-  color: #fbbf24cc;
 }
 
 .underline {

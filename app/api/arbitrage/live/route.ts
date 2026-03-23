@@ -54,8 +54,9 @@ function effectiveYesPrice(price: number, platform: Platform): number {
 }
 
 const baseUrl =
-  process.env.NEXT_PUBLIC_URL ??
-  (typeof process.env.VERCEL_URL === 'string' ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  typeof process.env.VERCEL_URL === 'string'
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXT_PUBLIC_URL ?? 'http://localhost:3000';
 
 export async function GET(req: NextRequest) {
   const generatedAt = new Date().toISOString();

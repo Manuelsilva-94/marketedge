@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 const baseUrl =
-  process.env.NEXT_PUBLIC_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXT_PUBLIC_URL ?? 'http://localhost:3000';
 
 const DEFAULT_STATS = {
   totalMarkets: 0,

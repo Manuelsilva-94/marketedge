@@ -11,20 +11,11 @@ class KalshiAuth {
   constructor() {
     this.apiKey = process.env.KALSHI_API_KEY!;
 
-    const privateKeyPath = process.env.KALSHI_PRIVATE_KEY_PATH;
-    let keyPem: string;
-
-    if (privateKeyPath) {
-      const fullPath = path.resolve(process.cwd(), privateKeyPath);
-      const keyContent = fs.readFileSync(fullPath, 'utf8');
-      keyPem = keyContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-    } else if (process.env.KALSHI_PRIVATE_KEY) {
-      keyPem = process.env.KALSHI_PRIVATE_KEY.replace(/\\n/g, '\n').trim();
-    } else {
-      throw new Error(
-        'KALSHI_PRIVATE_KEY or KALSHI_PRIVATE_KEY_PATH must be set'
-      );
+    const envKey = process.env.KALSHI_PRIVATE_KEY;
+    if (!envKey) {
+      throw new Error('KALSHI_PRIVATE_KEY must be set');
     }
+    const keyPem = envKey.replace(/\\n/g, '\n').trim();
 
     try {
       const isPkcs1 = keyPem.includes('BEGIN RSA PRIVATE KEY');

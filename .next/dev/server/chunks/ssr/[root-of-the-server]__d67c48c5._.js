@@ -208,7 +208,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$EmptySta
 ;
 ;
 ;
-const baseUrl = process.env.NEXT_PUBLIC_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : process.env.NEXT_PUBLIC_URL ?? 'http://localhost:3000';
 async function WhalesPage({ searchParams }) {
     const params = await searchParams;
     const period = params.period === '30d' ? '30d' : '7d';
@@ -263,7 +263,7 @@ async function WhalesPage({ searchParams }) {
                         children: "🐋 Whale Tracker"
                     }, void 0, false, {
                         fileName: "[project]/app/whales/page.tsx",
-                        lineNumber: 78,
+                        lineNumber: 79,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -271,13 +271,13 @@ async function WhalesPage({ searchParams }) {
                         children: "Top Polymarket traders by volume. Data from public blockchain activity."
                     }, void 0, false, {
                         fileName: "[project]/app/whales/page.tsx",
-                        lineNumber: 79,
+                        lineNumber: 80,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/whales/page.tsx",
-                lineNumber: 77,
+                lineNumber: 78,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$whales$2f$WhaleFilters$2e$tsx__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["WhaleFilters"], {
@@ -285,7 +285,7 @@ async function WhalesPage({ searchParams }) {
                 currentSort: sort
             }, void 0, false, {
                 fileName: "[project]/app/whales/page.tsx",
-                lineNumber: 84,
+                lineNumber: 85,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -304,7 +304,7 @@ async function WhalesPage({ searchParams }) {
                     preloadedTrades: preloadedTrades
                 }, void 0, false, {
                     fileName: "[project]/app/whales/page.tsx",
-                    lineNumber: 88,
+                    lineNumber: 89,
                     columnNumber: 11
                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$EmptyState$2e$tsx__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["EmptyState"], {
                     icon: "🐋",
@@ -316,12 +316,12 @@ async function WhalesPage({ searchParams }) {
                     }
                 }, void 0, false, {
                     fileName: "[project]/app/whales/page.tsx",
-                    lineNumber: 102,
+                    lineNumber: 103,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/app/whales/page.tsx",
-                lineNumber: 86,
+                lineNumber: 87,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -329,13 +329,13 @@ async function WhalesPage({ searchParams }) {
                 children: "Data sourced from Polymarket public blockchain. Kalshi positions are private and not tracked."
             }, void 0, false, {
                 fileName: "[project]/app/whales/page.tsx",
-                lineNumber: 118,
+                lineNumber: 119,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/whales/page.tsx",
-        lineNumber: 76,
+        lineNumber: 77,
         columnNumber: 5
     }, this);
 }

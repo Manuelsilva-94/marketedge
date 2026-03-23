@@ -4,8 +4,9 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import type { LeaderboardResponse } from '@/app/api/whales/leaderboard/route';
 
 const baseUrl =
-  process.env.NEXT_PUBLIC_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXT_PUBLIC_URL ?? 'http://localhost:3000';
 
 interface WhalesPageProps {
   searchParams: Promise<{

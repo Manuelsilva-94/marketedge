@@ -1,6 +1,4 @@
 import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
 
 export class KalshiAuth {
   private apiKey: string;
@@ -9,22 +7,13 @@ export class KalshiAuth {
   constructor() {
     this.apiKey = process.env.KALSHI_API_KEY!;
 
-    // Leer private key desde archivo o variable de entorno
-    const privateKeyPath = process.env.KALSHI_PRIVATE_KEY_PATH;
-
-    let keyPem: string;
-    if (privateKeyPath) {
-      // Si hay path, leer desde archivo (evita problemas de escaping)
-      const fullPath = path.resolve(process.cwd(), privateKeyPath);
-      const keyContent = fs.readFileSync(fullPath, 'utf8');
-      // Normalizar line endings (CRLF/CR -> LF) para compatibilidad con crypto
-      keyPem = keyContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-    } else if (process.env.KALSHI_PRIVATE_KEY) {
-      // En .env los \n suelen ser literales - convertir a saltos de línea reales
-      keyPem = process.env.KALSHI_PRIVATE_KEY.replace(/\\n/g, '\n').trim();
-    } else {
-      throw new Error('KALSHI_PRIVATE_KEY o KALSHI_PRIVATE_KEY_PATH must be set');
+    const envKey = process.env.KALSHI_PRIVATE_KEY;
+    if (!envKey) {
+      throw new Error('KALSHI_PRIVATE_KEY must be set');
     }
+
+    // En .env los \n suelen ser literales - convertir a saltos de línea reales
+    const keyPem = envKey.replace(/\\n/g, '\n').trim();
 
     // Validar y parsear la clave (soporta PKCS#1 y PKCS#8)
     try {
