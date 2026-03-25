@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Session } from 'next-auth';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import type { PinType } from '@/lib/db-types';
 
-async function getUserId(session: Awaited<ReturnType<typeof auth>>): Promise<string | null> {
+async function getUserId(session: Session | null): Promise<string | null> {
   if (!session?.user?.email) return null;
-  if (session.user.id) return session.user.id;
+  const id = session.user.id;
+  if (id) return id;
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
     select: { id: true }
