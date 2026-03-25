@@ -17,7 +17,11 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: 'MarketEdge — Compare Prediction Markets',
   description:
-    'Real-time comparison across Polymarket & Kalshi. Find arbitrage opportunities and follow smart money.'
+    'Real-time comparison across Polymarket & Kalshi. Find arbitrage opportunities and follow smart money.',
+  // Static <head> tag for AdSense site verification (crawler sees this without executing JS)
+  other: {
+    'google-adsense-account': 'ca-pub-3037455847496100'
+  }
 };
 
 export default async function RootLayout({
