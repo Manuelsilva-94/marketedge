@@ -396,9 +396,11 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2d$auth$2f$react$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next-auth/react.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/client/app-dir/link.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$providers$2f$ToastProvider$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/providers/ToastProvider.tsx [app-client] (ecmascript)");
 ;
 var _s = __turbopack_context__.k.signature();
 'use client';
+;
 ;
 ;
 ;
@@ -422,13 +424,13 @@ function TradesMini({ trades }) {
             children: "No recent trades."
         }, void 0, false, {
             fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-            lineNumber: 52,
+            lineNumber: 53,
             columnNumber: 12
         }, this);
     }
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "mt-2 space-y-1",
-        children: trades.slice(0, 3).map((t)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        children: trades.slice(0, 3).map((t, idx)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "flex items-center gap-2 text-xs text-muted-foreground",
                 children: [
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -440,7 +442,7 @@ function TradesMini({ trades }) {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                        lineNumber: 58,
+                        lineNumber: 59,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -448,7 +450,7 @@ function TradesMini({ trades }) {
                         children: t.market
                     }, void 0, false, {
                         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                        lineNumber: 61,
+                        lineNumber: 62,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -459,7 +461,7 @@ function TradesMini({ trades }) {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                        lineNumber: 62,
+                        lineNumber: 63,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -467,7 +469,7 @@ function TradesMini({ trades }) {
                         children: formatVolume(t.price * t.size)
                     }, void 0, false, {
                         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                        lineNumber: 63,
+                        lineNumber: 64,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -475,18 +477,18 @@ function TradesMini({ trades }) {
                         children: timeAgo(t.timestamp)
                     }, void 0, false, {
                         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                        lineNumber: 64,
+                        lineNumber: 65,
                         columnNumber: 11
                     }, this)
                 ]
-            }, t.id, true, {
+            }, `${t.transactionHash}-${idx}`, true, {
                 fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                lineNumber: 57,
+                lineNumber: 58,
                 columnNumber: 9
             }, this))
     }, void 0, false, {
         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-        lineNumber: 55,
+        lineNumber: 56,
         columnNumber: 5
     }, this);
 }
@@ -494,6 +496,7 @@ _c = TradesMini;
 function WhaleListWithPins({ whales, preloadedTrades = {} }) {
     _s();
     const { data: session } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2d$auth$2f$react$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useSession"])();
+    const { showToast } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$providers$2f$ToastProvider$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useToast"])();
     const [pinnedIds, setPinnedIds] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(new Set());
     const [expandedIds, setExpandedIds] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(// Top 3 empiezan expandidos
     new Set(whales.slice(0, 3).map({
@@ -521,7 +524,14 @@ function WhaleListWithPins({ whales, preloadedTrades = {} }) {
     ]);
     const togglePin = async (address)=>{
         if (!session) {
-            window.location.href = '/login';
+            showToast({
+                message: 'Sign in to track whales',
+                type: 'info',
+                link: {
+                    href: '/login',
+                    label: 'Sign in'
+                }
+            });
             return;
         }
         const isPinned = pinnedIds.has(address);
@@ -610,7 +620,7 @@ function WhaleListWithPins({ whales, preloadedTrades = {} }) {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                lineNumber: 152,
+                                lineNumber: 158,
                                 columnNumber: 15
                             }, this),
                             whale.profileImage ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
@@ -619,14 +629,14 @@ function WhaleListWithPins({ whales, preloadedTrades = {} }) {
                                 className: "h-9 w-9 shrink-0 rounded-full"
                             }, void 0, false, {
                                 fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                lineNumber: 157,
+                                lineNumber: 163,
                                 columnNumber: 17
                             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 className: "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-bold text-muted-foreground",
                                 children: whale.displayName.slice(0, 2).toUpperCase()
                             }, void 0, false, {
                                 fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                lineNumber: 159,
+                                lineNumber: 165,
                                 columnNumber: 17
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -638,7 +648,7 @@ function WhaleListWithPins({ whales, preloadedTrades = {} }) {
                                         children: whale.displayName
                                     }, void 0, false, {
                                         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                        lineNumber: 165,
+                                        lineNumber: 171,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -652,13 +662,13 @@ function WhaleListWithPins({ whales, preloadedTrades = {} }) {
                                                         children: formatVolume(whale.volume)
                                                     }, void 0, false, {
                                                         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                                        lineNumber: 172,
+                                                        lineNumber: 178,
                                                         columnNumber: 30
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                                lineNumber: 172,
+                                                lineNumber: 178,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -672,13 +682,13 @@ function WhaleListWithPins({ whales, preloadedTrades = {} }) {
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                                        lineNumber: 173,
+                                                        lineNumber: 179,
                                                         columnNumber: 30
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                                lineNumber: 173,
+                                                lineNumber: 179,
                                                 columnNumber: 19
                                             }, this),
                                             whale.winRate != null && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -692,25 +702,25 @@ function WhaleListWithPins({ whales, preloadedTrades = {} }) {
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                                        lineNumber: 177,
+                                                        lineNumber: 183,
                                                         columnNumber: 32
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                                lineNumber: 177,
+                                                lineNumber: 183,
                                                 columnNumber: 21
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                        lineNumber: 171,
+                                        lineNumber: 177,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                lineNumber: 164,
+                                lineNumber: 170,
                                 columnNumber: 15
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -723,7 +733,7 @@ function WhaleListWithPins({ whales, preloadedTrades = {} }) {
                                         children: pinnedIds.has(whale.proxyWallet) ? '★' : '☆'
                                     }, void 0, false, {
                                         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                        lineNumber: 185,
+                                        lineNumber: 191,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -732,19 +742,19 @@ function WhaleListWithPins({ whales, preloadedTrades = {} }) {
                                         children: isExpanded ? '▲' : '▼'
                                     }, void 0, false, {
                                         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                        lineNumber: 192,
+                                        lineNumber: 198,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                lineNumber: 184,
+                                lineNumber: 190,
                                 columnNumber: 15
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                        lineNumber: 151,
+                        lineNumber: 157,
                         columnNumber: 13
                     }, this),
                     isExpanded && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -760,18 +770,18 @@ function WhaleListWithPins({ whales, preloadedTrades = {} }) {
                                         className: "h-4 animate-pulse rounded bg-white/5"
                                     }, i, false, {
                                         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                        lineNumber: 207,
+                                        lineNumber: 213,
                                         columnNumber: 23
                                     }, this))
                             }, void 0, false, {
                                 fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                lineNumber: 205,
+                                lineNumber: 211,
                                 columnNumber: 19
                             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(TradesMini, {
                                 trades: trades ?? []
                             }, void 0, false, {
                                 fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                lineNumber: 211,
+                                lineNumber: 217,
                                 columnNumber: 19
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -780,31 +790,32 @@ function WhaleListWithPins({ whales, preloadedTrades = {} }) {
                                 children: "View full profile →"
                             }, void 0, false, {
                                 fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                                lineNumber: 213,
+                                lineNumber: 219,
                                 columnNumber: 17
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                        lineNumber: 203,
+                        lineNumber: 209,
                         columnNumber: 15
                     }, this)
                 ]
             }, whale.proxyWallet, true, {
                 fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-                lineNumber: 146,
+                lineNumber: 152,
                 columnNumber: 11
             }, this);
         })
     }, void 0, false, {
         fileName: "[project]/app/whales/WhaleListWithPins.tsx",
-        lineNumber: 139,
+        lineNumber: 145,
         columnNumber: 5
     }, this);
 }
-_s(WhaleListWithPins, "ufuz/m/58K72AfOkcTWrgn0qfKc=", false, function() {
+_s(WhaleListWithPins, "WCcSuB/dJ03jnbML6k791hvKYsE=", false, function() {
     return [
-        __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2d$auth$2f$react$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useSession"]
+        __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2d$auth$2f$react$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useSession"],
+        __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$providers$2f$ToastProvider$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useToast"]
     ];
 });
 _c1 = WhaleListWithPins;

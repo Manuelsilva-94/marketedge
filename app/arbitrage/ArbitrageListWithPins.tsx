@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { useToast } from '@/components/providers/ToastProvider';
 import { OpportunityCard } from '@/components/arbitrage/OpportunityCard';
 import type { OpportunityCardOpportunity } from '@/components/arbitrage/OpportunityCard';
 
@@ -13,6 +14,7 @@ interface ArbitrageListWithPinsProps {
 
 export function ArbitrageListWithPins({ opportunities }: ArbitrageListWithPinsProps) {
   const { data: session } = useSession();
+  const { showToast } = useToast();
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -28,7 +30,11 @@ export function ArbitrageListWithPins({ opportunities }: ArbitrageListWithPinsPr
 
   const togglePin = async (id: string) => {
     if (!session) {
-      window.location.href = '/login';
+      showToast({
+        message: 'Sign in to pin arbitrage opportunities',
+        type: 'info',
+        link: { href: '/login', label: 'Sign in' }
+      });
       return;
     }
     const isPinned = pinnedIds.has(id);

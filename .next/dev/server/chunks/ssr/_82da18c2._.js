@@ -751,14 +751,17 @@ __turbopack_context__.s([
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react-jsx-dev-runtime.js [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2d$auth$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next-auth/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$providers$2f$ToastProvider$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/providers/ToastProvider.tsx [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$arbitrage$2f$OpportunityCard$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/arbitrage/OpportunityCard.tsx [app-ssr] (ecmascript)");
 'use client';
 ;
 ;
 ;
 ;
+;
 function ArbitrageListWithPins({ opportunities }) {
     const { data: session } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2d$auth$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useSession"])();
+    const { showToast } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$providers$2f$ToastProvider$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useToast"])();
     const [pinnedIds, setPinnedIds] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(new Set());
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
         if (!session) return;
@@ -772,7 +775,14 @@ function ArbitrageListWithPins({ opportunities }) {
     ]);
     const togglePin = async (id)=>{
         if (!session) {
-            window.location.href = '/login';
+            showToast({
+                message: 'Sign in to pin arbitrage opportunities',
+                type: 'info',
+                link: {
+                    href: '/login',
+                    label: 'Sign in'
+                }
+            });
             return;
         }
         const isPinned = pinnedIds.has(id);
@@ -820,30 +830,30 @@ function ArbitrageListWithPins({ opportunities }) {
                             children: pinnedIds.has(opp.matchId ?? opp.id) ? '★' : '☆'
                         }, void 0, false, {
                             fileName: "[project]/app/arbitrage/ArbitrageListWithPins.tsx",
-                            lineNumber: 57,
+                            lineNumber: 63,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/app/arbitrage/ArbitrageListWithPins.tsx",
-                        lineNumber: 56,
+                        lineNumber: 62,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$arbitrage$2f$OpportunityCard$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["OpportunityCard"], {
                         opportunity: opp
                     }, void 0, false, {
                         fileName: "[project]/app/arbitrage/ArbitrageListWithPins.tsx",
-                        lineNumber: 65,
+                        lineNumber: 71,
                         columnNumber: 11
                     }, this)
                 ]
             }, opp.id, true, {
                 fileName: "[project]/app/arbitrage/ArbitrageListWithPins.tsx",
-                lineNumber: 55,
+                lineNumber: 61,
                 columnNumber: 9
             }, this))
     }, void 0, false, {
         fileName: "[project]/app/arbitrage/ArbitrageListWithPins.tsx",
-        lineNumber: 53,
+        lineNumber: 59,
         columnNumber: 5
     }, this);
 }

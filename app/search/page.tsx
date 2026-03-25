@@ -190,6 +190,7 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false);
   const [selectedPoly, setSelectedPoly] = useState<Market | null>(null);
   const [selectedKalshi, setSelectedKalshi] = useState<Market | null>(null);
+  const [mobileTab, setMobileTab] = useState<'POLYMARKET' | 'KALSHI'>('POLYMARKET');
 
   useEffect(() => {
     if (q.length < 2) return;
@@ -280,28 +281,54 @@ export default function SearchPage() {
               </Button>
             </div>
 
-            {/* Two columns */}
+            {/* Platform tabs — solo mobile */}
+            <div className="flex md:hidden rounded-lg border border-white/10 bg-white/5 p-1 gap-1">
+              {(['POLYMARKET', 'KALSHI'] as const).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setMobileTab(p)}
+                  className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
+                    mobileTab === p
+                      ? p === 'POLYMARKET'
+                        ? 'bg-blue-500/20 text-blue-400'
+                        : 'bg-purple-500/20 text-purple-400'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {p === 'POLYMARKET' ? 'Polymarket' : 'Kalshi'}
+                  <span className="ml-1.5 text-xs opacity-70">
+                    ({p === 'POLYMARKET' ? polyTotal : kalshiTotal})
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Two columns — desktop / single column mobile */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <PlatformColumn
-                platform="POLYMARKET"
-                markets={polyMarkets}
-                loading={loading}
-                selected={selectedPoly}
-                onSelect={setSelectedPoly}
-                page={polyPage}
-                total={polyTotal}
-                onPageChange={setPolyPage}
-              />
-              <PlatformColumn
-                platform="KALSHI"
-                markets={kalshiMarkets}
-                loading={loading}
-                selected={selectedKalshi}
-                onSelect={setSelectedKalshi}
-                page={kalshiPage}
-                total={kalshiTotal}
-                onPageChange={setKalshiPage}
-              />
+              <div className={mobileTab === 'POLYMARKET' ? 'block' : 'hidden md:block'}>
+                <PlatformColumn
+                  platform="POLYMARKET"
+                  markets={polyMarkets}
+                  loading={loading}
+                  selected={selectedPoly}
+                  onSelect={setSelectedPoly}
+                  page={polyPage}
+                  total={polyTotal}
+                  onPageChange={setPolyPage}
+                />
+              </div>
+              <div className={mobileTab === 'KALSHI' ? 'block' : 'hidden md:block'}>
+                <PlatformColumn
+                  platform="KALSHI"
+                  markets={kalshiMarkets}
+                  loading={loading}
+                  selected={selectedKalshi}
+                  onSelect={setSelectedKalshi}
+                  page={kalshiPage}
+                  total={kalshiTotal}
+                  onPageChange={setKalshiPage}
+                />
+              </div>
             </div>
           </>
         )}

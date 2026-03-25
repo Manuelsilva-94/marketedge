@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SearchBar } from '@/components/markets/SearchBar';
 import { ArbitrageCard } from '@/components/markets/ArbitrageCard';
@@ -5,6 +6,26 @@ import { StatsGrid } from '@/components/stats/StatsGrid';
 import { WhaleCard } from '@/components/whales/WhaleCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { BMC_DONATION_URL, PAYPAL_DONATION_URL } from '@/lib/donation-links';
+
+export const metadata: Metadata = {
+  title: 'MarketEdge — Compare Prediction Markets & Find Arbitrage',
+  description:
+    'Real-time comparison of Polymarket and Kalshi. Find arbitrage opportunities, track whale traders, and compare prices across prediction markets.',
+  openGraph: {
+    title: 'MarketEdge — Compare Prediction Markets & Find Arbitrage',
+    description:
+      'Real-time comparison of Polymarket and Kalshi. Find arbitrage opportunities and track whale traders.',
+    url: 'https://marketedge-chi.vercel.app',
+    siteName: 'MarketEdge',
+    type: 'website'
+  },
+  twitter: {
+    card: 'summary',
+    title: 'MarketEdge',
+    description: 'Find arbitrage opportunities across Polymarket & Kalshi'
+  }
+};
 
 const baseUrl =
   process.env.VERCEL_URL
@@ -85,7 +106,7 @@ export default async function HomePage() {
   return (
     <div className="bg-[#0a0a0f]">
       {/* Section 1: Hero */}
-      <section className="border-b border-white/10 px-4 pt-24 pb-20">
+      <section className="border-b border-white/10 px-4 pt-24 pb-16">
         <div className="container mx-auto max-w-4xl text-center">
           <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
             Compare Prediction Markets. Find Arbitrage. Follow Smart Money.
@@ -104,6 +125,38 @@ export default async function HomePage() {
             <span>Live Prices</span>
           </div>
         </div>
+        {/* Support section */}
+        <div className="container mx-auto max-w-6xl mt-6">
+          <div className="flex flex-col items-center gap-3 text-center  sm:justify-between sm:text-left">
+            <div>
+              <p className="text-sm font-medium text-center text-muted-foreground">
+                MarketEdge is free to use
+              </p>
+              <p className="text-xs text-muted-foreground/60">
+                If it saves you time or money, consider supporting the project
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center justify-center gap-3 sm:justify-end">
+              <a
+                href={BMC_DONATION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-white/20 hover:text-foreground"
+              >
+                ☕ Buy me a coffee
+              </a>
+              <a
+                href={PAYPAL_DONATION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-white/20 hover:text-foreground"
+              >
+                PayPal
+              </a>
+            </div>
+          </div>
+        </div>
+
       </section>
 
       {/* Section 2: Live Arbitrage Opportunities */}
@@ -218,6 +271,8 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+
     </div>
   );
 }

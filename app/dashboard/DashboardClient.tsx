@@ -53,9 +53,18 @@ interface User {
   image?: string | null;
 }
 
+type DashboardTab = 'pins' | 'notifications';
+
 export default function DashboardClient({ user }: { user: User }) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<DashboardTab>('pins');
+
+  const [emailNotifications, setEmailNotifications] = useState(false);
+  const [telegramLinked, setTelegramLinked] = useState(false);
+  const [telegramCode, setTelegramCode] = useState<string | null>(null);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [notifLoaded, setNotifLoaded] = useState(false);
 
   useEffect(() => {
     fetch('/api/dashboard')
@@ -63,6 +72,20 @@ export default function DashboardClient({ user }: { user: User }) {
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (tab !== 'notifications') return;
+    setNotifLoading(true);
+    fetch('/api/user/notifications')
+      .then(r => r.json())
+      .then((d) => {
+        setEmailNotifications(!!d.emailNotifications);
+        setTelegramLinked(!!d.telegramLinked);
+        setNotifLoaded(true);
+      })
+      .catch(() => setNotifLoaded(true))
+      .finally(() => setNotifLoading(false));
+  }, [tab]);
 
   const unpinArbitrage = async (id: string) => {
     await fetch('/api/pins', {
@@ -105,6 +128,36 @@ export default function DashboardClient({ user }: { user: User }) {
 
   const firstName = user.name?.split(' ')[0] ?? 'there';
 
+  const toggleEmail = async () => {
+    const r = await fetch('/api/user/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'toggle_email' })
+    });
+    const d = await r.json();
+    if (d.emailNotifications !== undefined) setEmailNotifications(d.emailNotifications);
+  };
+
+  const generateTelegramCode = async () => {
+    const r = await fetch('/api/user/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'generate_telegram_code' })
+    });
+    const d = await r.json();
+    if (d.code) setTelegramCode(d.code);
+  };
+
+  const unlinkTelegram = async () => {
+    await fetch('/api/user/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'unlink_telegram' })
+    });
+    setTelegramLinked(false);
+    setTelegramCode(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <div className="max-w-6xl mx-auto px-6 py-10">
@@ -120,6 +173,125 @@ export default function DashboardClient({ user }: { user: User }) {
           <h1 className="text-3xl font-bold text-white">Your Dashboard</h1>
         </div>
 
+        {/* Tabs */}
+        <div className="mb-8 flex gap-2 border-b border-gray-800">
+          <button
+            type="button"
+            onClick={() => setTab('pins')}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              tab === 'pins'
+                ? 'border-[#00ff88] text-white'
+                : 'border-transparent text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Pins
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('notifications')}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              tab === 'notifications'
+                ? 'border-[#00ff88] text-white'
+                : 'border-transparent text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Notifications
+          </button>
+        </div>
+
+        {tab === 'notifications' && (
+          <div className="space-y-6 max-w-xl">
+            {notifLoading && (
+              <div className="text-gray-500 text-sm py-8 text-center">Loading...</div>
+            )}
+
+            {notifLoaded && (
+              <>
+                {/* Email */}
+                <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-white font-semibold">📧 Email Alerts</h3>
+                      <p className="text-gray-400 text-sm mt-1">
+                        Get notified at <span className="text-white">{user.email}</span> when
+                        new arbitrage opportunities with ROI ≥ 1% are detected.
+                      </p>
+                    </div>
+                    <button
+                      onClick={toggleEmail}
+                      className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                        emailNotifications ? 'bg-[#00ff88]' : 'bg-gray-700'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          emailNotifications ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {emailNotifications && (
+                    <p className="mt-3 text-xs text-[#00ff88]">✓ Email alerts active</p>
+                  )}
+                </div>
+
+                {/* Telegram */}
+                <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+                  <h3 className="text-white font-semibold">✈️ Telegram Alerts</h3>
+                  <p className="text-gray-400 text-sm mt-1 mb-4">
+                    Receive instant Telegram messages when arbitrage opportunities appear.
+                  </p>
+
+                  {telegramLinked ? (
+                    <div className="space-y-3">
+                      <p className="text-xs text-[#00ff88]">✓ Telegram linked</p>
+                      <button
+                        onClick={unlinkTelegram}
+                        className="text-xs text-gray-500 hover:text-red-400 transition-colors underline"
+                      >
+                        Unlink Telegram
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {!telegramCode ? (
+                        <button
+                          onClick={generateTelegramCode}
+                          className="inline-flex items-center gap-2 rounded-lg bg-[#229ED9] px-4 py-2 text-sm font-medium text-white hover:bg-[#1a8bbf] transition-colors"
+                        >
+                          Connect Telegram
+                        </button>
+                      ) : (
+                        <div className="space-y-3">
+                          <a
+                            href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}?start=${telegramCode}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 rounded-lg bg-[#229ED9] px-4 py-2 text-sm font-medium text-white hover:bg-[#1a8bbf] transition-colors"
+                          >
+                            ✈️ Open Telegram to verify →
+                          </a>
+                          <p className="text-xs text-gray-500">
+                            Click the button above → tap Start in Telegram. Code expires in 10 minutes.
+                          </p>
+                          <button
+                            onClick={() => setTelegramCode(null)}
+                            className="text-xs text-gray-600 hover:text-gray-400 underline"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {tab === 'pins' && (
+        <>
         {/* Stats row */}
         {data && (
           <div className="grid grid-cols-3 gap-4 mb-10">
@@ -285,6 +457,8 @@ export default function DashboardClient({ user }: { user: User }) {
             </section>
 
           </div>
+        )}
+        </>
         )}
       </div>
     </div>

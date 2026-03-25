@@ -23,6 +23,10 @@ model User {
   accounts      Account[]
   sessions      Session[]
   pins          Pin[]
+  emailNotifications  Boolean  @default(false)
+  telegramChatId      String?
+  telegramVerifyCode  String?
+  telegramVerifyExpiry DateTime?
 }
 
 model Account {

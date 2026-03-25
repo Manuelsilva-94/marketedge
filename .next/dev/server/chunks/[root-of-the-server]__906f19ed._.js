@@ -273,13 +273,16 @@ __turbopack_context__.s([
     "GET",
     ()=>GET,
     "dynamic",
-    ()=>dynamic
+    ()=>dynamic,
+    "preferredRegion",
+    ()=>preferredRegion
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/server.js [app-route] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$services$2f$whale$2e$service$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/services/whale.service.ts [app-route] (ecmascript)");
 ;
 ;
 const dynamic = 'force-dynamic';
+const preferredRegion = 'iad1';
 async function GET(req) {
     const generatedAt = new Date().toISOString();
     const searchParams = req.nextUrl.searchParams;

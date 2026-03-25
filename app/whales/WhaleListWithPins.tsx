@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { useToast } from '@/components/providers/ToastProvider';
 
 interface Trade {
   id: string;
@@ -53,8 +54,8 @@ function TradesMini({ trades }: { trades: Trade[] }) {
   }
   return (
     <div className="mt-2 space-y-1">
-      {trades.slice(0, 3).map((t) => (
-        <div key={t.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+      {trades.slice(0, 3).map((t, idx) => (
+        <div key={`${t.transactionHash}-${idx}`} className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className={`shrink-0 font-semibold ${t.outcome === 'YES' ? 'text-green-400' : 'text-red-400'}`}>
             {t.side} {t.outcome}
           </span>
@@ -70,6 +71,7 @@ function TradesMini({ trades }: { trades: Trade[] }) {
 
 export function WhaleListWithPins({ whales, preloadedTrades = {} }: WhaleListWithPinsProps) {
   const { data: session } = useSession();
+  const { showToast } = useToast();
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     // Top 3 empiezan expandidos
@@ -91,7 +93,11 @@ export function WhaleListWithPins({ whales, preloadedTrades = {} }: WhaleListWit
 
   const togglePin = async (address: string) => {
     if (!session) {
-      window.location.href = '/login';
+      showToast({
+        message: 'Sign in to track whales',
+        type: 'info',
+        link: { href: '/login', label: 'Sign in' }
+      });
       return;
     }
     const isPinned = pinnedIds.has(address);
