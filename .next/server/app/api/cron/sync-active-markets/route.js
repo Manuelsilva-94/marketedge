@@ -1,7 +1,0 @@
-var R=require("../../../../chunks/[turbopack]_runtime.js")("server/app/api/cron/sync-active-markets/route.js")
-R.c("server/chunks/_94455f0d._.js")
-R.c("server/chunks/[root-of-the-server]__6ac8ec31._.js")
-R.c("server/chunks/[root-of-the-server]__3cf8d3ca._.js")
-R.c("server/chunks/_next-internal_server_app_api_cron_sync-active-markets_route_actions_4a25e34c.js")
-R.m(54417)
-module.exports=R.m(54417).exports

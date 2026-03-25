@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/moca/Documents/marketedge/app/whales/%5Baddress%5D/not-found.tsx"],"sourcesContent":["import Link from 'next/link';\r\nimport { Button } from '@/components/ui/button';\r\n\r\nexport default function WhaleNotFound() {\r\n  return (\r\n    <div className=\"container flex min-h-[50vh] flex-col items-center justify-center px-4 py-16\">\r\n      <h1 className=\"text-2xl font-semibold tracking-tight\">Whale not found</h1>\r\n      <p className=\"mt-2 text-center text-muted-foreground\">\r\n        This address has no public activity on Polymarket or the address is invalid.\r\n      </p>\r\n      <Button asChild variant=\"outline\" className=\"mt-6 border-white/20\">\r\n        <Link href=\"/whales\">Back to Whale Tracker</Link>\r\n      </Button>\r\n    </div>\r\n  );\r\n}\r\n"],"names":[],"mappings":";;;;;AAAA;AACA;;;;AAEe,SAAS;IACtB,qBACE,8OAAC;QAAI,WAAU;;0BACb,8OAAC;gBAAG,WAAU;0BAAwC;;;;;;0BACtD,8OAAC;gBAAE,WAAU;0BAAyC;;;;;;0BAGtD,8OAAC,qIAAM;gBAAC,OAAO;gBAAC,SAAQ;gBAAU,WAAU;0BAC1C,cAAA,8OAAC,0LAAI;oBAAC,MAAK;8BAAU;;;;;;;;;;;;;;;;;AAI7B"}}]
-}

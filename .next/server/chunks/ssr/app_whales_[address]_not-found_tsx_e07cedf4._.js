@@ -1,3 +1,0 @@
-module.exports=[37054,a=>{"use strict";var b=a.i(7997),c=a.i(95936),d=a.i(43917);function e(){return(0,b.jsxs)("div",{className:"container flex min-h-[50vh] flex-col items-center justify-center px-4 py-16",children:[(0,b.jsx)("h1",{className:"text-2xl font-semibold tracking-tight",children:"Whale not found"}),(0,b.jsx)("p",{className:"mt-2 text-center text-muted-foreground",children:"This address has no public activity on Polymarket or the address is invalid."}),(0,b.jsx)(d.Button,{asChild:!0,variant:"outline",className:"mt-6 border-white/20",children:(0,b.jsx)(c.default,{href:"/whales",children:"Back to Whale Tracker"})})]})}a.s(["default",()=>e])}];
-
-//# sourceMappingURL=app_whales_%5Baddress%5D_not-found_tsx_e07cedf4._.js.map
