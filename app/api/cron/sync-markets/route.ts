@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { PolymarketService } from '@/lib/services/polymarket.service';
 import { KalshiService } from '@/lib/services/kalshi.service';
 import { prisma } from '@/lib/prisma';
+import { requireCronAuth } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 10 min
@@ -9,13 +10,8 @@ export const preferredRegion = 'iad1';
 
 export async function GET(request: Request) {
   try {
-    // Auth
-    const authHeader = request.headers.get('authorization');
-    const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
-
-    if (authHeader !== expectedAuth) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authError = requireCronAuth(request);
+    if (authError) return authError;
 
     console.log('\n🔄 CRON: Master Sync Job');
     const startTime = Date.now();

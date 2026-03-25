@@ -4,6 +4,23 @@ import { prisma } from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (process.env.NODE_ENV === 'production') {
+    if (!webhookSecret) {
+      return NextResponse.json(
+        { error: 'TELEGRAM_WEBHOOK_SECRET not configured' },
+        { status: 503 }
+      );
+    }
+    if (req.headers.get('X-Telegram-Bot-Api-Secret-Token') !== webhookSecret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  } else if (webhookSecret) {
+    if (req.headers.get('X-Telegram-Bot-Api-Secret-Token') !== webhookSecret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
+
   try {
     const body = await req.json();
     const message = body?.message;

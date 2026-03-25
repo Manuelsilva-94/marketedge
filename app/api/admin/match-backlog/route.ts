@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import type { Market } from '@/lib/db-types';
 import { MatcherService } from '@/lib/services/matcher.service';
 import { SemanticMatcherService } from '@/lib/services/semantic-matcher.service';
+import { requireAdminApiAuth } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -11,7 +12,10 @@ const MIN_KEYWORD_SCORE = 0.6;
 const GROQ_RATE_LIMIT_DELAY_MS = 1100;
 
 // GET → stats del backlog actual
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const authError = requireAdminApiAuth(req);
+  if (authError) return authError;
+
   const totalKalshiActive = await prisma.market.count({
     where: { platform: 'KALSHI', active: true }
   });
@@ -52,6 +56,9 @@ export async function GET() {
 
 // POST → procesa un batch del backlog
 export async function POST(req: NextRequest) {
+  const authError = requireAdminApiAuth(req);
+  if (authError) return authError;
+
   const body = await req.json().catch(() => ({}));
   const offset = Number(body.offset ?? 0);
   const batchSize = Math.min(Number(body.batchSize ?? 20), 50);

@@ -2,26 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { MatcherService } from '@/lib/services/matcher.service';
 import { SemanticMatcherService } from '@/lib/services/semantic-matcher.service';
+import { requireCronAuth } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
-const CRON_SECRET = process.env.CRON_SECRET;
 const MIN_KEYWORD_SCORE = 0.6;
 const MAX_MARKETS_TO_PROCESS = 80;
 const MAX_CANDIDATES_PER_MARKET = 3;
 const GROQ_DELAY_MS = 1100;
 
-function isAuthorized(req: NextRequest): boolean {
-  if (process.env.NODE_ENV === 'development') return true;
-  const auth = req.headers.get('authorization');
-  return auth === `Bearer ${CRON_SECRET}`;
-}
-
 export async function GET(req: NextRequest) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = requireCronAuth(req);
+  if (authError) return authError;
 
   const startTime = Date.now();
   const MAX_DURATION_MS = 270_000; // 4.5 min — margen antes del timeout de 5min

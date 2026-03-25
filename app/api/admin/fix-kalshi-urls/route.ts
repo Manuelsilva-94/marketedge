@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { buildKalshiUrl } from '@/lib/utils/kalshi-url';
+import { requireAdminApiAuth } from '@/lib/cron-auth';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const authError = requireAdminApiAuth(request);
+  if (authError) return authError;
+
   const markets = await prisma.market.findMany({
     where: { platform: 'KALSHI' },
     select: { id: true, externalId: true, seriesId: true, eventId: true }

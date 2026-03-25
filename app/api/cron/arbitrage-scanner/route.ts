@@ -5,6 +5,7 @@ import { ComparisonService } from '@/lib/services/comparison.service';
 import { TelegramService } from '@/lib/services/telegram.service';
 import { PolymarketService } from '@/lib/services/polymarket.service';
 import { KalshiService } from '@/lib/services/kalshi.service';
+import { requireCronAuth } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -16,13 +17,8 @@ function effectiveYesPrice(price: number, platform: 'POLYMARKET' | 'KALSHI'): nu
 }
 
 export async function GET(req: NextRequest) {
-  // Verificar authorization para evitar llamadas no autorizadas
-  const authHeader = req.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = requireCronAuth(req);
+  if (authError) return authError;
 
   const startedAt = Date.now();
   const MIN_ROI = 0.005; // 0.5% mínimo

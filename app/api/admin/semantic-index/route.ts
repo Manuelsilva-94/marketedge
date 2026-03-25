@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { SemanticMatcherService } from '@/lib/services/semantic-matcher.service';
 import { MatcherService } from '@/lib/services/matcher.service';
+import { requireAdminApiAuth } from '@/lib/cron-auth';
 
 // Clave para trackear progreso en memoria (persiste mientras el servidor esté vivo)
 let indexingProgress: {
@@ -146,7 +147,10 @@ export async function POST(request: Request) {
 }
 
 // GET /api/admin/semantic-index — ver progreso
-export async function GET() {
+export async function GET(request: Request) {
+  const authError = requireAdminApiAuth(request);
+  if (authError) return authError;
+
   const dbStats = await prisma.marketMatch.groupBy({
     by: ['isEquivalent'],
     _count: true,
