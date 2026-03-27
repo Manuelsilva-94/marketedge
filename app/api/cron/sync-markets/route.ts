@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { requireCronAuth } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 10 min
+export const maxDuration = 55;
 export const preferredRegion = 'iad1';
 
 export async function GET(request: Request) {

@@ -5,11 +5,11 @@ import { SemanticMatcherService } from '@/lib/services/semantic-matcher.service'
 import { requireCronAuth } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
+export const maxDuration = 55;
 
 const MIN_KEYWORD_SCORE = 0.6;
-const MAX_MARKETS_TO_PROCESS = 80;
-const MAX_CANDIDATES_PER_MARKET = 3;
+const MAX_MARKETS_TO_PROCESS = 15;
+const MAX_CANDIDATES_PER_MARKET = 2;
 const GROQ_DELAY_MS = 1100;
 
 export async function GET(req: NextRequest) {
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   if (authError) return authError;
 
   const startTime = Date.now();
-  const MAX_DURATION_MS = 270_000; // 4.5 min — margen antes del timeout de 5min
+  const MAX_DURATION_MS = 50_000;
 
   // Markets de Kalshi insertados en las últimas 12h sin ningún MarketMatch
   const since = new Date(Date.now() - 12 * 60 * 60 * 1000);
