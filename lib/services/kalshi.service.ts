@@ -470,7 +470,7 @@ export class KalshiService {
     const params = new URLSearchParams({
       status: 'open',
       min_created_ts: String(sinceTs),
-      limit: '1000'
+      limit: '200'           // limitar a 200 en vez de 1000
     });
 
     const url = `${this.baseUrl}/markets?${params}`;
@@ -484,13 +484,14 @@ export class KalshiService {
 
     const data = (await response.json()) as KalshiMarketsResponse;
     const markets = data.markets || [];
-
-    console.log(`  📦 Found ${markets.length} new markets`);
+    // Limitar a 50 para no exceder timeout de 55s en Hobby
+    const marketsToSync = markets.slice(0, 50);
+    console.log(`  📦 Processing ${marketsToSync.length} of ${markets.length} new markets`);
 
     let synced = 0;
     const startTime = Date.now();
 
-    for (const market of markets) {
+    for (const market of marketsToSync) {
       try {
         const normalized = this.normalizeMarket(market);
 

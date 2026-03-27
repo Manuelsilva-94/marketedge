@@ -407,12 +407,11 @@ export class PolymarketService {
     const sinceDate = lastSync.lastSyncedAt.toISOString();
     console.log(`  📅 Syncing markets created after: ${sinceDate}`);
 
+    // En vez de filtrar por fecha en la API (no soportado),
+    // fetchear la primera página ordenada por fecha desc
     const params = new URLSearchParams({
       active: 'true',
       closed: 'false',
-      start_date_min: sinceDate,
-      order: 'start_date',
-      ascending: 'false',
       limit: '100'
     });
 
