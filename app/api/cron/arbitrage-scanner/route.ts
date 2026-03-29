@@ -9,7 +9,7 @@ import { KalshiService } from '@/lib/services/kalshi.service';
 import { requireCronAuth } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
+export const maxDuration = 55;
 export const preferredRegion = 'iad1';
 
 function effectiveYesPrice(price: number, platform: 'POLYMARKET' | 'KALSHI'): number {
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
   const startedAt = Date.now();
   const MIN_ROI = 0.005; // 0.5% mínimo
-  const BATCH_SIZE = 10;
+  const BATCH_SIZE = 5;
   const newOpportunities: string[] = [];
   const closedOpportunities: string[] = [];
   let telegramService: TelegramService | null = null;
@@ -91,7 +91,8 @@ export async function GET(req: NextRequest) {
     type PairItem = NonNullable<(typeof pairsWithNulls)[number]>;
     const pairs = pairsWithNulls
       .filter((p: PairItem | null): p is PairItem => p !== null)
-      .filter((p: PairItem) => (p.poly.volume24h ?? 0) + (p.kalshi.volume24h ?? 0) > 100);
+      .filter((p: PairItem) => (p.poly.volume24h ?? 0) + (p.kalshi.volume24h ?? 0) > 100)
+      .slice(0, 40);
 
     console.log(`[CronScanner] ${pairs.length} pairs to scan`);
 
