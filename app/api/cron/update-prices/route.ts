@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     const pairs = await prisma.marketMatch.findMany({
         where: {
             isEquivalent: true,
-            confidence: { gte: 0.82 },
+            confidence: { gt: 0 },
             marketA: { active: true },
             marketB: { active: true }
         },
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
         })
         .filter((p): p is NonNullable<typeof p> => p !== null && p.volume > 0)
         .sort((a, b) => b.volume - a.volume)
-        .slice(0, 60);
+        .slice(0, 100);
 
     console.log(`[update-prices] Processing ${normalized.length} pairs`);
 
