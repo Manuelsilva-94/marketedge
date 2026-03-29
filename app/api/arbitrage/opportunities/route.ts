@@ -336,15 +336,19 @@ export async function GET(req: NextRequest) {
               try {
                 const cached = await redis.get(priceKey(pair.matchId));
                 if (cached) {
-                  const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
-                  const age = Date.now() - new Date(parsed.updatedAt).getTime();
-                  if (age < 120_000) {
-                    polyLive = parsed.poly;
-                    kalshiLive = parsed.kalshi;
+                  const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached as Record<string, unknown>;
+                  const age = Date.now() - new Date(parsed.updatedAt as string).getTime();
+                  if (age < 180_000) { // ampliar a 3 minutos para dar más margen
+                    polyLive = parsed.poly as typeof polyLive;
+                    kalshiLive = parsed.kalshi as typeof kalshiLive;
+                  } else {
+                    console.log(`[Redis] Cache stale for ${pair.matchId}: age=${Math.round(age / 1000)}s`);
                   }
+                } else {
+                  console.log(`[Redis] Cache miss for ${pair.matchId}`);
                 }
-              } catch {
-                // Redis falló, continuar con fetch en vivo
+              } catch (redisErr) {
+                console.log(`[Redis] Error for ${pair.matchId}:`, redisErr);
               }
 
               if (!polyLive || !kalshiLive) {
