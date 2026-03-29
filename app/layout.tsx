@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Analytics } from "@vercel/analytics/next"
 import { Outfit } from 'next/font/google';
 import { SessionProvider } from 'next-auth/react';
 import { auth } from '@/auth';
@@ -49,6 +50,7 @@ export default async function RootLayout({
           </ToastProvider>
         </SessionProvider>
         <DonationBubble />
+        <Analytics />
       </body>
     </html>
   );

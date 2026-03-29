@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { auth } from '@/auth';
 import { SearchBar } from '@/components/markets/SearchBar';
 import { ArbitrageCard } from '@/components/markets/ArbitrageCard';
 import { StatsGrid } from '@/components/stats/StatsGrid';
@@ -77,6 +78,9 @@ function formatVolume(v: number): string {
 }
 
 export default async function HomePage() {
+  const session = await auth();
+  const isNewUser = !session?.user;
+
   const [statsResult, trendingResult, arbitrageResult, whalesResult] = await Promise.allSettled([
     fetch(`${baseUrl}/api/stats/overview`, { next: { revalidate: 300 } }).then((r) => r.json()),
     fetch(`${baseUrl}/api/markets/trending?limit=3`, { next: { revalidate: 300 } }).then((r) => r.json()),
@@ -158,6 +162,42 @@ export default async function HomePage() {
         </div>
 
       </section>
+
+      {/* Onboarding banner — solo para usuarios no logueados */}
+      {isNewUser && (
+        <section className="border-b border-white/10 bg-[#00ff88]/5 px-4 py-4">
+          <div className="container mx-auto max-w-6xl">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <span className="text-xl">👋</span>
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    New to MarketEdge?
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Search a market → Compare prices across platforms → Find arbitrage opportunities automatically.
+                    Sign in to save your favorites and get alerts.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 ml-8 sm:ml-0">
+                <a
+                  href="/search"
+                  className="rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 transition-colors"
+                >
+                  Search Markets
+                </a>
+                <a
+                  href="/login"
+                  className="rounded-lg bg-[#00ff88] px-3 py-1.5 text-xs font-medium text-black hover:bg-[#00ff88]/90 transition-colors"
+                >
+                  Sign in free →
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Section 2: Live Arbitrage Opportunities */}
       <section className="border-b border-white/10 px-4 py-16">
