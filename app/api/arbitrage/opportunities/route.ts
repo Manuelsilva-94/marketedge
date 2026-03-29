@@ -1,4 +1,5 @@
-  import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { redis, priceKey } from '@/lib/redis';
 import { prisma } from '@/lib/prisma';
 import type { Platform } from '@/lib/db-types';
 import { ComparisonService } from '@/lib/services/comparison.service';
@@ -329,17 +330,38 @@ export async function GET(req: NextRequest) {
         await Promise.allSettled(
           batch.map(async (pair: ConfirmedPair) => {
             try {
-              const [polyLive, kalshiLive] = await Promise.all([
-                polyService.getLiveMarket({
-                  externalId: pair.polymarket.externalId,
-                  platform: 'POLYMARKET',
-                  slug: pair.polymarket.slug
-                }),
-                kalshiService!.getLiveMarket({
-                  externalId: pair.kalshiMarket.externalId,
-                  platform: 'KALSHI'
-                })
-              ]);
+              let polyLive: Awaited<ReturnType<PolymarketService['getLiveMarket']>> | undefined;
+              let kalshiLive: Awaited<ReturnType<KalshiService['getLiveMarket']>> | undefined;
+
+              try {
+                const cached = await redis.get(priceKey(pair.matchId));
+                if (cached) {
+                  const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
+                  const age = Date.now() - new Date(parsed.updatedAt).getTime();
+                  if (age < 120_000) {
+                    polyLive = parsed.poly;
+                    kalshiLive = parsed.kalshi;
+                  }
+                }
+              } catch {
+                // Redis falló, continuar con fetch en vivo
+              }
+
+              if (!polyLive || !kalshiLive) {
+                const [polyResult, kalshiResult] = await Promise.all([
+                  polyService.getLiveMarket({
+                    externalId: pair.polymarket.externalId,
+                    platform: 'POLYMARKET',
+                    slug: pair.polymarket.slug
+                  }),
+                  kalshiService!.getLiveMarket({
+                    externalId: pair.kalshiMarket.externalId,
+                    platform: 'KALSHI'
+                  })
+                ]);
+                polyLive = polyResult;
+                kalshiLive = kalshiResult;
+              }
 
               if (
                 polyLive?.yesPrice == null ||
@@ -463,16 +485,16 @@ export async function GET(req: NextRequest) {
       scannedPairs,
       ...(debug
         ? {
-            diagnostics: {
-              kalshiReady: Boolean(kalshiService),
-              kalshiInitError,
-              pricedPairs,
-              skippedIncompleteQuotes,
-              priceFetchErrors,
-              belowMinRoi,
-              deduplicatedOut
-            }
+          diagnostics: {
+            kalshiReady: Boolean(kalshiService),
+            kalshiInitError,
+            pricedPairs,
+            skippedIncompleteQuotes,
+            priceFetchErrors,
+            belowMinRoi,
+            deduplicatedOut
           }
+        }
         : {}),
       generatedAt
     };

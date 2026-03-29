@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { redis, priceKey } from '@/lib/redis';
 import { prisma } from '@/lib/prisma';
 import { getSiteBaseUrl } from '@/lib/site-url';
 import { ComparisonService } from '@/lib/services/comparison.service';
@@ -106,17 +107,38 @@ export async function GET(req: NextRequest) {
       await Promise.allSettled(
         batch.map(async (pair: PairItem) => {
           try {
-            const [polyLive, kalshiLive] = await Promise.all([
-              polyService.getLiveMarket({
-                externalId: pair.poly.externalId,
-                platform: 'POLYMARKET',
-                slug: pair.poly.slug
-              }),
-              kalshiService!.getLiveMarket({
-                externalId: pair.kalshi.externalId,
-                platform: 'KALSHI'
-              })
-            ]);
+            let polyLive: Awaited<ReturnType<PolymarketService['getLiveMarket']>> | undefined;
+            let kalshiLive: Awaited<ReturnType<KalshiService['getLiveMarket']>> | undefined;
+
+            try {
+              const cached = await redis.get(priceKey(pair.matchId));
+              if (cached) {
+                const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
+                const age = Date.now() - new Date(parsed.updatedAt).getTime();
+                if (age < 120_000) {
+                  polyLive = parsed.poly;
+                  kalshiLive = parsed.kalshi;
+                }
+              }
+            } catch {
+              // Redis falló, continuar con fetch en vivo
+            }
+
+            if (!polyLive || !kalshiLive) {
+              const [polyResult, kalshiResult] = await Promise.all([
+                polyService.getLiveMarket({
+                  externalId: pair.poly.externalId,
+                  platform: 'POLYMARKET',
+                  slug: pair.poly.slug
+                }),
+                kalshiService!.getLiveMarket({
+                  externalId: pair.kalshi.externalId,
+                  platform: 'KALSHI'
+                })
+              ]);
+              polyLive = polyResult;
+              kalshiLive = kalshiResult;
+            }
 
             if (!polyLive?.yesPrice || !kalshiLive?.yesPrice) return;
 
