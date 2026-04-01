@@ -3,12 +3,7 @@ import { WhaleHeader } from '@/components/whales/WhaleHeader';
 import { TradeRow } from '@/components/whales/TradeRow';
 import { PositionCard } from '@/components/whales/PositionCard';
 import { Button } from '@/components/ui/button';
-import type { WhaleProfileApiResponse } from '@/app/api/whales/[address]/route';
-
-const baseUrl =
-  process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.NEXT_PUBLIC_URL ?? 'http://localhost:3000';
+import { buildWhaleProfileResponse } from '@/lib/whales/whale-profile-response';
 
 interface WhaleDetailPageProps {
   params: Promise<{ address: string }>;
@@ -20,22 +15,17 @@ export default async function WhaleDetailPage({ params }: WhaleDetailPageProps) 
   const isValidAddress = normalized ? /^0x[a-fA-F0-9]{40}$/.test(normalized) : false;
   if (!normalized || !isValidAddress) notFound();
 
-  let data: WhaleProfileApiResponse;
-  try {
-    const res = await fetch(`${baseUrl}/api/whales/${encodeURIComponent(normalized!)}`, {
-      next: { revalidate: 300 }
-    });
-    data = await res.json();
-  } catch {
-    notFound();
-  }
-
-  if (!data || data.error) notFound();
+  const data = await buildWhaleProfileResponse(normalized.toLowerCase());
 
   const { stats, recentTrades, topPositions } = data;
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">
+      {data.error && (
+        <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          Could not load full profile: {data.error}
+        </div>
+      )}
       <WhaleHeader
         address={data.address}
         displayName={data.displayName}
@@ -43,7 +33,7 @@ export default async function WhaleDetailPage({ params }: WhaleDetailPageProps) 
         volume30d={stats.volume30d}
         pnl7d={stats.pnl7d}
         winRate={stats.winRate}
-        marketsTraded={topPositions.length}
+        marketsTraded={stats.marketsTraded}
       />
 
       {recentTrades.length > 0 && (
