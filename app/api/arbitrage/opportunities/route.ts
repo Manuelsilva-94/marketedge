@@ -1,4 +1,5 @@
-  import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { redis, priceKey } from '@/lib/redis';
 import { prisma } from '@/lib/prisma';
 import type { Platform } from '@/lib/db-types';
 import { ComparisonService } from '@/lib/services/comparison.service';
@@ -329,17 +330,42 @@ export async function GET(req: NextRequest) {
         await Promise.allSettled(
           batch.map(async (pair: ConfirmedPair) => {
             try {
-              const [polyLive, kalshiLive] = await Promise.all([
-                polyService.getLiveMarket({
-                  externalId: pair.polymarket.externalId,
-                  platform: 'POLYMARKET',
-                  slug: pair.polymarket.slug
-                }),
-                kalshiService!.getLiveMarket({
-                  externalId: pair.kalshiMarket.externalId,
-                  platform: 'KALSHI'
-                })
-              ]);
+              let polyLive: Awaited<ReturnType<PolymarketService['getLiveMarket']>> | undefined;
+              let kalshiLive: Awaited<ReturnType<KalshiService['getLiveMarket']>> | undefined;
+
+              try {
+                const cached = await redis.get(priceKey(pair.matchId));
+                if (cached) {
+                  const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached as Record<string, unknown>;
+                  const age = Date.now() - new Date(parsed.updatedAt as string).getTime();
+                  if (age < 180_000) { // ampliar a 3 minutos para dar más margen
+                    polyLive = parsed.poly as typeof polyLive;
+                    kalshiLive = parsed.kalshi as typeof kalshiLive;
+                  } else {
+                    console.log(`[Redis] Cache stale for ${pair.matchId}: age=${Math.round(age / 1000)}s`);
+                  }
+                } else {
+                  console.log(`[Redis] Cache miss for ${pair.matchId}`);
+                }
+              } catch (redisErr) {
+                console.log(`[Redis] Error for ${pair.matchId}:`, redisErr);
+              }
+
+              if (!polyLive || !kalshiLive) {
+                const [polyResult, kalshiResult] = await Promise.all([
+                  polyService.getLiveMarket({
+                    externalId: pair.polymarket.externalId,
+                    platform: 'POLYMARKET',
+                    slug: pair.polymarket.slug
+                  }),
+                  kalshiService!.getLiveMarket({
+                    externalId: pair.kalshiMarket.externalId,
+                    platform: 'KALSHI'
+                  })
+                ]);
+                polyLive = polyResult;
+                kalshiLive = kalshiResult;
+              }
 
               if (
                 polyLive?.yesPrice == null ||
@@ -463,16 +489,16 @@ export async function GET(req: NextRequest) {
       scannedPairs,
       ...(debug
         ? {
-            diagnostics: {
-              kalshiReady: Boolean(kalshiService),
-              kalshiInitError,
-              pricedPairs,
-              skippedIncompleteQuotes,
-              priceFetchErrors,
-              belowMinRoi,
-              deduplicatedOut
-            }
+          diagnostics: {
+            kalshiReady: Boolean(kalshiService),
+            kalshiInitError,
+            pricedPairs,
+            skippedIncompleteQuotes,
+            priceFetchErrors,
+            belowMinRoi,
+            deduplicatedOut
           }
+        }
         : {}),
       generatedAt
     };

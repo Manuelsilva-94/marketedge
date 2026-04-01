@@ -6,6 +6,8 @@ export interface ArbitrageStatsProps {
   bestRoi: number;
   scannedPairs: number;
   generatedAt: string;
+  onRefresh?: () => void;
+  loading?: boolean;
 }
 
 function formatScanned(n: number): string {
@@ -13,13 +15,14 @@ function formatScanned(n: number): string {
   return String(n);
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string): { text: string; stale: boolean } {
   const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (sec < 60) return 'just now';
-  if (sec < 120) return '1 minute ago';
-  if (sec < 3600) return `${Math.floor(sec / 60)} minutes ago`;
-  if (sec < 7200) return '1 hour ago';
-  return `${Math.floor(sec / 3600)} hours ago`;
+  const stale = sec > 180; // más de 3 minutos = stale
+  if (sec < 60) return { text: 'just now', stale };
+  if (sec < 120) return { text: '1 minute ago', stale };
+  if (sec < 3600) return { text: `${Math.floor(sec / 60)} minutes ago`, stale };
+  if (sec < 7200) return { text: '1 hour ago', stale };
+  return { text: `${Math.floor(sec / 3600)} hours ago`, stale };
 }
 
 export function ArbitrageStats({
@@ -27,8 +30,12 @@ export function ArbitrageStats({
   avgRoi,
   bestRoi,
   scannedPairs,
-  generatedAt
+  generatedAt,
+  onRefresh,
+  loading
 }: ArbitrageStatsProps) {
+  const { text, stale } = timeAgo(generatedAt);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -61,9 +68,17 @@ export function ArbitrageStats({
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Last updated: {timeAgo(generatedAt)}
-      </p>
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5">
+          <span className={`h-2 w-2 rounded-full ${stale ? 'bg-amber-400' : 'bg-[#00ff88]'} ${!stale ? 'animate-pulse' : ''}`} />
+          <p className={`text-xs ${stale ? 'text-amber-400' : 'text-muted-foreground'}`}>
+            {stale
+              ? `⚠️ Data may be stale — last updated ${text}`
+              : `Last updated: ${text}`
+            }
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

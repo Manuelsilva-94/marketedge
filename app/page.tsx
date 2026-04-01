@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { auth } from '@/auth';
 import { SearchBar } from '@/components/markets/SearchBar';
 import { ArbitrageCard } from '@/components/markets/ArbitrageCard';
 import { StatsGrid } from '@/components/stats/StatsGrid';
@@ -66,9 +67,8 @@ function formatVolume(v: number): string {
 
 async function getStats() {
   try {
-    const [total, byPlatform, volume] = await Promise.all([
+    const [total, volume] = await Promise.all([
       prisma.market.count(),
-      prisma.market.groupBy({ by: ['platform'], _count: true }),
       prisma.market.aggregate({ _sum: { volume24h: true } })
     ]);
     return {
@@ -96,7 +96,7 @@ async function getTopArbitrage(): Promise<ArbitrageOpportunityView[]> {
         }
       }
     });
-    return opps.map((o) => {
+    return opps.map((o: (typeof opps)[number]) => {
       const poly = o.match.marketA.platform === 'POLYMARKET' ? o.match.marketA : o.match.marketB;
       const kalshi = o.match.marketA.platform === 'KALSHI' ? o.match.marketA : o.match.marketB;
       return {
@@ -134,6 +134,9 @@ async function getTopWhales(): Promise<WhaleLeaderboardItem[]> {
 }
 
 export default async function HomePage() {
+  const session = await auth();
+  const isNewUser = !session?.user;
+
   const [stats, opportunities, whales] = await Promise.all([
     getStats(),
     getTopArbitrage(),
@@ -199,28 +202,29 @@ export default async function HomePage() {
 
       </section>
 
-      {/* Onboarding banner */}
-      <section className="border-b border-white/10 bg-[#00ff88]/5 px-4 py-5">
-        <div className="container mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">👋</span>
-            <div>
-              <p className="font-semibold text-white">New to MarketEdge?</p>
-              <p className="text-sm text-muted-foreground">
-                Search a market → Compare prices across platforms → Find arbitrage opportunities automatically. Sign in to save your favorites and get alerts.
-              </p>
+      {isNewUser && (
+        <section className="border-b border-white/10 bg-[#00ff88]/5 px-4 py-5">
+          <div className="container mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">👋</span>
+              <div>
+                <p className="font-semibold text-white">New to MarketEdge?</p>
+                <p className="text-sm text-muted-foreground">
+                  Search a market → Compare prices across platforms → Find arbitrage opportunities automatically. Sign in to save your favorites and get alerts.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <Button asChild size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20">
+                <Link href="/search">Search Markets</Link>
+              </Button>
+              <Button asChild size="sm" className="bg-[#00ff88] hover:bg-[#00ff88]/90 text-[#0a0a0f]">
+                <Link href="/login">Sign in (free) →</Link>
+              </Button>
             </div>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <Button asChild size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20">
-              <Link href="/search">Search Markets</Link>
-            </Button>
-            <Button asChild size="sm" className="bg-[#00ff88] hover:bg-[#00ff88]/90 text-[#0a0a0f]">
-              <Link href="/login">Sign in (free) →</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Section 2: Live Arbitrage Opportunities */}
       <section className="border-b border-white/10 px-4 py-16">

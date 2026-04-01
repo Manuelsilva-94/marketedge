@@ -64,7 +64,21 @@ function matchTypeClass(matchType: string): string {
 
 export function OpportunityCard({ opportunity }: OpportunityCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
   const o = opportunity;
+
+  const handleShare = async () => {
+    const baseUrl = window.location.origin;
+    const shareUrl = `${baseUrl}/compare?a=${o.polymarket.id}&b=${o.kalshi.id}`;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback: abrir en nueva pestaña
+      window.open(shareUrl, '_blank');
+    }
+  };
 
   const yesPoly = o.polymarket.yesPrice;
   const noPoly = o.polymarket.noPrice;
@@ -88,7 +102,10 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
     : (o.kalshi.url || 'https://kalshi.com');
 
   return (
-    <Card className="overflow-hidden border-white/10 bg-white/5 transition-all hover:border-white/20">
+    <Card
+      className="overflow-hidden border-white/10 bg-white/5 transition-all hover:border-white/20 cursor-pointer"
+      onClick={() => setExpanded(!expanded)}
+    >
       <CardContent className="p-0">
         <div className="p-5">
           <div className="flex flex-wrap items-start justify-between gap-2">
@@ -130,14 +147,31 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
                 Vol: {formatVolume(o.totalVolume24h)}
               </span>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground"
-              onClick={() => setExpanded(!expanded)}
-            >
-              {expanded ? '▲ Collapse' : '▼ Details'}
-            </Button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void handleShare();
+                }}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded border border-white/10 hover:border-white/20"
+                title="Copy link to compare"
+              >
+                {copied ? '✓ Copied!' : '⎘ Share'}
+              </button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded(!expanded);
+                }}
+              >
+                {expanded ? '▲ Collapse' : '▼ Details'}
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -146,6 +180,7 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
             'grid transition-all duration-200 ease-in-out',
             expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
           )}
+          onClick={(e) => e.stopPropagation()}
         >
           <div className="overflow-hidden">
             <div className="border-t border-white/10 bg-white/[0.03] p-5">
