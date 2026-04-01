@@ -90,7 +90,7 @@ export default async function MarketPage({ params }: MarketPageProps) {
       : market.question;
 
   return (
-    <div className="container px-4 py-8">
+    <div className="container mx-auto max-w-6xl px-4 py-8">
       <nav className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/" className="hover:text-foreground">
           Home

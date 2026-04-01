@@ -2,7 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 export default function SearchLoading() {
   return (
-    <div className="container px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
       <div className="mx-auto max-w-4xl space-y-6">
         <div className="h-10 w-full max-w-xl animate-pulse rounded bg-white/5" />
         <div className="flex gap-4">

@@ -2,7 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 export default function MarketLoading() {
   return (
-    <div className="container px-4 py-8">
+    <div className="container mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6 flex gap-2">
         <div className="h-4 w-16 animate-pulse rounded bg-white/5" />
         <div className="h-4 w-4 animate-pulse rounded bg-white/5" />

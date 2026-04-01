@@ -111,7 +111,7 @@ export default function ArbitragePage() {
   const bestRoi = filtered.length > 0 ? Math.max(...filtered.map((o) => o.roi)) : 0;
 
   return (
-    <div className="container px-4 py-8">
+    <div className="container mx-auto max-w-6xl px-4 py-8">
       <ArbitrageStats
         count={filtered.length}
         avgRoi={avgRoi}

@@ -249,7 +249,7 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="container px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
       <div className="mx-auto max-w-6xl space-y-6">
         <SearchInput defaultValue={q} />
 

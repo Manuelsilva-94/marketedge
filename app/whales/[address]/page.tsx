@@ -35,7 +35,7 @@ export default async function WhaleDetailPage({ params }: WhaleDetailPageProps) 
   const { stats, recentTrades, topPositions } = data;
 
   return (
-    <div className="container px-4 py-8">
+    <div className="container mx-auto max-w-6xl px-4 py-8">
       <WhaleHeader
         address={data.address}
         displayName={data.displayName}

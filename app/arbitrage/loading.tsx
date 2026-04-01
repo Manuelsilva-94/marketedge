@@ -3,7 +3,7 @@ import { ArbitrageLoadingProgress } from '@/components/arbitrage/ArbitrageLoadin
 
 export default function ArbitrageLoading() {
   return (
-    <div className="container px-4 py-8">
+    <div className="container mx-auto max-w-6xl px-4 py-8">
       <ArbitrageLoadingProgress />
 
       <div className="space-y-4">

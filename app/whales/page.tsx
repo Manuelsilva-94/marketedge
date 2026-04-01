@@ -83,7 +83,7 @@ export default async function WhalesPage({ searchParams }: WhalesPageProps) {
   }
 
   return (
-    <div className="container px-4 py-8">
+    <div className="container mx-auto max-w-6xl px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">🐋 Whale Tracker</h1>
         <p className="mt-2 text-muted-foreground">

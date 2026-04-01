@@ -7,6 +7,10 @@ import { WhaleCard } from '@/components/whales/WhaleCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { BMC_DONATION_URL, PAYPAL_DONATION_URL } from '@/lib/donation-links';
+import { prisma } from '@/lib/prisma';
+import { WhaleService } from '@/lib/services/whale.service';
+
+export const revalidate = 120;
 
 export const metadata: Metadata = {
   title: 'MarketEdge — Compare Prediction Markets & Find Arbitrage',
@@ -27,23 +31,7 @@ export const metadata: Metadata = {
   }
 };
 
-const baseUrl =
-  process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.NEXT_PUBLIC_URL ?? 'http://localhost:3000';
-
-const DEFAULT_STATS = {
-  totalMarkets: 0,
-  activeMarkets: 0,
-  polymarketCount: 0,
-  kalshiCount: 0,
-  totalVolume24h: 0,
-  lastSyncedAt: null as string | null,
-  whalesTracked: 50
-};
-
-
-interface ArbitrageOpportunity {
+interface ArbitrageOpportunityView {
   id: string;
   question: string;
   category: string | null;
@@ -76,32 +64,84 @@ function formatVolume(v: number): string {
   return `$${Math.round(v)}`;
 }
 
+async function getStats() {
+  try {
+    const [total, byPlatform, volume] = await Promise.all([
+      prisma.market.count(),
+      prisma.market.groupBy({ by: ['platform'], _count: true }),
+      prisma.market.aggregate({ _sum: { volume24h: true } })
+    ]);
+    return {
+      totalMarkets: total,
+      totalVolume24h: volume._sum.volume24h ?? 0,
+      whalesTracked: 50
+    };
+  } catch {
+    return { totalMarkets: 0, totalVolume24h: 0, whalesTracked: 50 };
+  }
+}
+
+async function getTopArbitrage(): Promise<ArbitrageOpportunityView[]> {
+  try {
+    const opps = await prisma.arbitrageOpportunity.findMany({
+      where: { active: true },
+      orderBy: { roiPercent: 'desc' },
+      take: 3,
+      include: {
+        match: {
+          include: {
+            marketA: { select: { platform: true, question: true, category: true, volume24h: true } },
+            marketB: { select: { platform: true, question: true, category: true, volume24h: true } }
+          }
+        }
+      }
+    });
+    return opps.map((o) => {
+      const poly = o.match.marketA.platform === 'POLYMARKET' ? o.match.marketA : o.match.marketB;
+      const kalshi = o.match.marketA.platform === 'KALSHI' ? o.match.marketA : o.match.marketB;
+      return {
+        id: o.id,
+        question: poly.question,
+        category: poly.category,
+        polymarket: { yesPrice: o.polyPrice, volume24h: poly.volume24h },
+        kalshi: { yesPrice: o.kalshiPrice, volume24h: kalshi.volume24h },
+        roi: o.roiPercent,
+        volume24h: (poly.volume24h ?? 0) + (kalshi.volume24h ?? 0)
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function getTopWhales(): Promise<WhaleLeaderboardItem[]> {
+  try {
+    const whaleService = new WhaleService();
+    const list = await whaleService.getTopTraders('7d', 3);
+    return list.slice(0, 3).map((w) => ({
+      address: w.address,
+      displayName: w.displayName,
+      volume7d: w.volume7d,
+      pnl7d: w.pnl7d,
+      winRate: w.winRate,
+      marketsTraded: w.marketsTraded,
+      topMarket: w.topMarket ?? null,
+      recentActivity: w.recentActivity ?? ''
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export default async function HomePage() {
-  const [statsResult, trendingResult, arbitrageResult, whalesResult] = await Promise.allSettled([
-    fetch(`${baseUrl}/api/stats/overview`, { next: { revalidate: 300 } }).then((r) => r.json()),
-    fetch(`${baseUrl}/api/markets/trending?limit=3`, { next: { revalidate: 300 } }).then((r) => r.json()),
-    fetch(`${baseUrl}/api/arbitrage/live?limit=3`, { next: { revalidate: 120 } }).then((r) => r.json()),
-    fetch(`${baseUrl}/api/whales/leaderboard?period=7d&limit=3`, { next: { revalidate: 600 } }).then((r) => r.json())
+  const [stats, opportunities, whales] = await Promise.all([
+    getStats(),
+    getTopArbitrage(),
+    getTopWhales()
   ]);
 
-  const statsData =
-    statsResult.status === 'fulfilled' ? statsResult.value : DEFAULT_STATS;
-  const trendingData =
-    trendingResult.status === 'fulfilled'
-      ? trendingResult.value
-      : { markets: [] as Array<{ id: string; platform: string; question: string; category: string | null; volume24h: number; url: string | null }> };
-  const arbitrageData =
-    arbitrageResult.status === 'fulfilled'
-      ? arbitrageResult.value
-      : { opportunities: [] as ArbitrageOpportunity[] };
-
-  const stats = statsData && typeof statsData === 'object' ? statsData : DEFAULT_STATS;
-  const totalMarkets = stats.totalMarkets ?? 0;
-  const totalVolume = stats.totalVolume24h ?? 0;
-  const opportunities: ArbitrageOpportunity[] = arbitrageData?.opportunities ?? [];
-  const trendingMarkets = trendingData?.markets ?? [];
-  const whalesData = whalesResult.status === 'fulfilled' ? whalesResult.value : { whales: [] };
-  const whales: WhaleLeaderboardItem[] = Array.isArray(whalesData?.whales) ? whalesData.whales : [];
+  const totalMarkets = stats.totalMarkets;
+  const totalVolume = stats.totalVolume24h;
 
   return (
     <div className="bg-[#0a0a0f]">
@@ -143,7 +183,7 @@ export default async function HomePage() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-white/20 hover:text-foreground"
               >
-                ☕ Buy me a coffee
+              Buy me a coffee
               </a>
               <a
                 href={PAYPAL_DONATION_URL}
@@ -157,6 +197,29 @@ export default async function HomePage() {
           </div>
         </div>
 
+      </section>
+
+      {/* Onboarding banner */}
+      <section className="border-b border-white/10 bg-[#00ff88]/5 px-4 py-5">
+        <div className="container mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">👋</span>
+            <div>
+              <p className="font-semibold text-white">New to MarketEdge?</p>
+              <p className="text-sm text-muted-foreground">
+                Search a market → Compare prices across platforms → Find arbitrage opportunities automatically. Sign in to save your favorites and get alerts.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <Button asChild size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20">
+              <Link href="/search">Search Markets</Link>
+            </Button>
+            <Button asChild size="sm" className="bg-[#00ff88] hover:bg-[#00ff88]/90 text-[#0a0a0f]">
+              <Link href="/login">Sign in (free) →</Link>
+            </Button>
+          </div>
+        </div>
       </section>
 
       {/* Section 2: Live Arbitrage Opportunities */}

@@ -2,7 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 export default function WhalesLoading() {
   return (
-    <div className="container px-4 py-8">
+    <div className="container mx-auto max-w-6xl px-4 py-8">
       <div className="mb-8">
         <div className="h-9 w-64 animate-pulse rounded bg-white/10" />
         <div className="mt-2 h-5 w-96 animate-pulse rounded bg-white/10" />

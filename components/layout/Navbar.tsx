@@ -12,7 +12,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#0a0a0f]/80 backdrop-blur-xl">
-      <div className="container flex h-16 items-center gap-4 px-4">
+        <div className="container mx-auto flex h-16 items-center gap-4 px-4">
         {/* Logo */}
         <Link
           href="/"

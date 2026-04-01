@@ -126,7 +126,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
   }
 
   return (
-    <div className="container px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
       <div className="mx-auto max-w-5xl space-y-6">
         <Link
           href="/search"
