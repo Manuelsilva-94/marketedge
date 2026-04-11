@@ -106,10 +106,23 @@ export async function GET(req: NextRequest) {
               where: { id: market.id },
               data: {
                 active: !isResolved,
+                resolvedAt: isResolved ? new Date() : null,
                 volume24h: liveData.volume24h ?? undefined,
                 lastSyncedAt: new Date()
               }
             });
+
+            if (isResolved) {
+              await prisma.arbitrageOpportunity.updateMany({
+                where: {
+                  active: true,
+                  match: {
+                    OR: [{ marketAId: market.id }, { marketBId: market.id }]
+                  }
+                },
+                data: { active: false, closedAt: new Date() }
+              });
+            }
 
             if (isResolved && market.active) {
               markedInactive++;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCachedPricesForMatch } from '@/lib/redis';
+import { getCachedPricesFromDb, isPriceCacheFreshFromWorker } from '@/lib/price-cache';
 import { prisma } from '@/lib/prisma';
 import { getSiteBaseUrl } from '@/lib/site-url';
 import { ComparisonService } from '@/lib/services/comparison.service';
@@ -108,17 +108,17 @@ export async function GET(req: NextRequest) {
       await Promise.allSettled(
         batch.map(async (pair: PairItem) => {
           try {
+            if (await isPriceCacheFreshFromWorker(pair.matchId)) {
+              return;
+            }
+
             let polyLive: Awaited<ReturnType<PolymarketService['getLiveMarket']>> | undefined;
             let kalshiLive: Awaited<ReturnType<KalshiService['getLiveMarket']>> | undefined;
 
-            const cached = await getCachedPricesForMatch(pair.matchId);
+            const cached = await getCachedPricesFromDb(pair.matchId, 120_000);
             if (cached) {
-              const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
-              const age = Date.now() - new Date(parsed.updatedAt).getTime();
-              if (age < 120_000) {
-                polyLive = parsed.poly;
-                kalshiLive = parsed.kalshi;
-              }
+              polyLive = cached.poly as typeof polyLive;
+              kalshiLive = cached.kalshi as typeof kalshiLive;
             }
 
             if (!polyLive || !kalshiLive) {
@@ -343,9 +343,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 3c: Cerrar oportunidades que ya no tienen arbitraje
+    // 3c: Cerrar oportunidades que ya no tienen arbitraje (solo si el worker no mantiene precios frescos)
     for (const active of activeInDb) {
       if (!finalScan.has(active.matchId)) {
+        if (await isPriceCacheFreshFromWorker(active.matchId)) {
+          continue;
+        }
         await prisma.arbitrageOpportunity.update({
           where: { id: active.id },
           data: { active: false, closedAt: new Date() }

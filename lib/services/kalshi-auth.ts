@@ -36,19 +36,15 @@ export class KalshiAuth {
    * Genera signature RSA-PSS para una request
    * Formato: timestamp + METHOD + path (sin query params, sin body)
    */
-  generateSignature(method: string, path: string): string {
-    const timestamp = Date.now().toString();
-
-    // Mensaje: timestamp + METHOD + path
-    // IMPORTANTE: NO incluir query params, NO incluir body
+  /**
+   * Firma RSA-PSS; el `timestamp` debe ser idéntico al header KALSHI-ACCESS-TIMESTAMP.
+   */
+  generateSignature(timestamp: string, method: string, path: string): string {
     const message = timestamp + method + path;
-
-    // Firma RSA-PSS con SHA-256 (usar KeyObject parseado evita DECODER errors)
     const signature = crypto.sign('sha256', Buffer.from(message), {
       key: this.privateKey,
       padding: crypto.constants.RSA_PKCS1_PSS_PADDING
     });
-
     return signature.toString('base64');
   }
 
@@ -57,7 +53,7 @@ export class KalshiAuth {
    */
   getHeaders(method: string, path: string): Record<string, string> {
     const timestamp = Date.now().toString();
-    const signature = this.generateSignature(method, path);
+    const signature = this.generateSignature(timestamp, method, path);
 
     return {
       'KALSHI-ACCESS-KEY': this.apiKey,

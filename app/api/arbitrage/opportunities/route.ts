@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCachedPricesForMatch } from '@/lib/redis';
+import { getCachedPricesFromDb, PRICE_CACHE_STALE_MS } from '@/lib/price-cache';
 import { prisma } from '@/lib/prisma';
 import type { Platform } from '@/lib/db-types';
 import { ComparisonService } from '@/lib/services/comparison.service';
@@ -333,15 +333,13 @@ export async function GET(req: NextRequest) {
               let polyLive: Awaited<ReturnType<PolymarketService['getLiveMarket']>> | undefined;
               let kalshiLive: Awaited<ReturnType<KalshiService['getLiveMarket']>> | undefined;
 
-              const cached = await getCachedPricesForMatch(pair.matchId);
+              const cached = await getCachedPricesFromDb(
+                pair.matchId,
+                PRICE_CACHE_STALE_MS
+              );
               if (cached) {
-                const parsed =
-                  typeof cached === 'string' ? JSON.parse(cached) : (cached as Record<string, unknown>);
-                const age = Date.now() - new Date(parsed.updatedAt as string).getTime();
-                if (age < 180_000) {
-                  polyLive = parsed.poly as typeof polyLive;
-                  kalshiLive = parsed.kalshi as typeof kalshiLive;
-                }
+                polyLive = cached.poly as typeof polyLive;
+                kalshiLive = cached.kalshi as typeof kalshiLive;
               }
 
               if (!polyLive || !kalshiLive) {

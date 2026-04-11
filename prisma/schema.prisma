@@ -128,6 +128,9 @@ model Market {
   updatedAt    DateTime @updatedAt
   lastSyncedAt DateTime @default(now())
 
+  /// JSON array of CLOB outcome token IDs [yes, no] from Gamma — used by Railway WS worker
+  polyTokenIds String?
+
   matchesAsA MarketMatch[] @relation("MatchA")
   matchesAsB MarketMatch[] @relation("MatchB")
 
@@ -154,6 +157,7 @@ model MarketMatch {
   marketA Market @relation("MatchA", fields: [marketAId], references: [id], onDelete: Cascade)
   marketB Market @relation("MatchB", fields: [marketBId], references: [id], onDelete: Cascade)
   opportunities ArbitrageOpportunity[]
+  priceCache    PriceCache?
 
   @@unique([marketAId, marketBId])
   @@index([isEquivalent])
@@ -198,6 +202,17 @@ model SyncLog {
   createdAt DateTime @default(now())
 
   @@index([platform, lastSyncedAt])
+}
+
+model PriceCache {
+  matchId        String   @id
+  polyYesPrice   Float
+  polyNoPrice    Float
+  kalshiYesPrice Float
+  kalshiNoPrice  Float
+  updatedAt      DateTime @updatedAt
+
+  match MarketMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
 }
 
 model ArbitrageOpportunity {
