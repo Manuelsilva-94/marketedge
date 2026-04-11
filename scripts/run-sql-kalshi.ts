@@ -44,68 +44,73 @@ async function runSQLKalshi() {
   const startTime = Date.now();
   let synced = 0;
   let errors = 0;
-  const BATCH_SIZE = 50;
+  /** Smaller batches = shorter transactions (less likely to hit default 5–30s timeout on slow DB). */
+  const BATCH_SIZE = 25;
+  const TX_TIMEOUT_MS = 120_000;
 
   for (let i = 0; i < marketsData.length; i += BATCH_SIZE) {
     const batch = marketsData.slice(i, i + BATCH_SIZE);
 
     try {
-      const operations = batch.map((m) => {
-        const createData = {
-          platform: Platform.KALSHI,
-          externalId: m.externalId,
-          question: m.question,
-          slug: m.slug,
-          description: m.description,
-          category: m.category,
-          tags: m.tags,
-          makerFee: 0.07,
-          takerFee: 0.07,
-          feeStructure: 'payout_based',
-          volume24h: m.volume24h,
-          volumeTotal: m.volumeTotal,
-          liquidity: m.liquidity,
-          active: m.active,
-          endDate: m.endDate ? new Date(m.endDate) : null,
-          imageUrl: m.imageUrl,
-          url: m.url,
-          eventId: m.eventId,
-          eventSlug: m.eventSlug,
-          eventTitle: m.eventTitle,
-          seriesId: m.seriesId ?? null
-        };
-
-        return prisma.market.upsert({
-          where: {
-            platform_externalId: {
+      await prisma.$transaction(
+        async (tx) => {
+          for (const m of batch) {
+            const createData = {
               platform: Platform.KALSHI,
-              externalId: m.externalId
-            }
-          },
-          update: {
-            question: createData.question,
-            slug: createData.slug,
-            description: createData.description,
-            category: createData.category,
-            tags: createData.tags,
-            volume24h: createData.volume24h,
-            volumeTotal: createData.volumeTotal,
-            liquidity: createData.liquidity,
-            active: createData.active,
-            endDate: createData.endDate,
-            url: createData.url,
-            eventId: createData.eventId,
-            eventSlug: createData.eventSlug,
-            eventTitle: createData.eventTitle,
-            seriesId: createData.seriesId,
-            lastSyncedAt: new Date(),
-            updatedAt: new Date()
-          },
-          create: createData
-        });
-      });
+              externalId: m.externalId,
+              question: m.question,
+              slug: m.slug,
+              description: m.description,
+              category: m.category,
+              tags: m.tags,
+              makerFee: 0.07,
+              takerFee: 0.07,
+              feeStructure: 'payout_based' as const,
+              volume24h: m.volume24h,
+              volumeTotal: m.volumeTotal,
+              liquidity: m.liquidity,
+              active: m.active,
+              endDate: m.endDate ? new Date(m.endDate) : null,
+              imageUrl: m.imageUrl,
+              url: m.url,
+              eventId: m.eventId,
+              eventSlug: m.eventSlug,
+              eventTitle: m.eventTitle,
+              seriesId: m.seriesId ?? null
+            };
 
-      await prisma.$transaction(operations);
+            await tx.market.upsert({
+              where: {
+                platform_externalId: {
+                  platform: Platform.KALSHI,
+                  externalId: m.externalId
+                }
+              },
+              update: {
+                question: createData.question,
+                slug: createData.slug,
+                description: createData.description,
+                category: createData.category,
+                tags: createData.tags,
+                volume24h: createData.volume24h,
+                volumeTotal: createData.volumeTotal,
+                liquidity: createData.liquidity,
+                active: createData.active,
+                endDate: createData.endDate,
+                url: createData.url,
+                eventId: createData.eventId,
+                eventSlug: createData.eventSlug,
+                eventTitle: createData.eventTitle,
+                seriesId: createData.seriesId,
+                lastSyncedAt: new Date(),
+                updatedAt: new Date()
+              },
+              create: createData
+            });
+          }
+        },
+        { maxWait: 30_000, timeout: TX_TIMEOUT_MS }
+      );
       synced += batch.length;
 
       if (synced % 500 === 0 || i + BATCH_SIZE >= marketsData.length) {

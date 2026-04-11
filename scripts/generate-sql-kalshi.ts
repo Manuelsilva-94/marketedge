@@ -22,22 +22,22 @@ interface MarketData {
   seriesId?: string | null;
 }
 
+/** Inserts per file (each file is one BEGIN … COMMIT transaction). */
+const INSERTS_PER_PART = Number(process.env.KALSHI_SQL_PART_SIZE ?? '1000');
+
 function escapeSQLString(str: string | null | undefined): string {
   if (str == null || typeof str !== 'string') return 'NULL';
   const escaped = str.replace(/'/g, "''");
   return `'${escaped}'`;
 }
 
-function generateSQLInserts(markets: MarketData[]): string {
-  const inserts: string[] = [];
+function buildInsertStatement(m: MarketData): string {
+  const tagsArray =
+    m.tags.length > 0
+      ? `ARRAY[${m.tags.map((t) => escapeSQLString(t)).join(', ')}]`
+      : 'ARRAY[]::text[]';
 
-  for (const m of markets) {
-    const tagsArray =
-      m.tags.length > 0
-        ? `ARRAY[${m.tags.map((t) => escapeSQLString(t)).join(', ')}]`
-        : 'ARRAY[]::text[]';
-
-    const insert = `INSERT INTO "Market" (
+  return `INSERT INTO "Market" (
   "id",
   "platform",
   "externalId",
@@ -107,17 +107,13 @@ ON CONFLICT ("platform", "externalId") DO UPDATE SET
   "seriesId" = EXCLUDED."seriesId",
   "updatedAt" = NOW(),
   "lastSyncedAt" = NOW();`;
-
-    inserts.push(insert);
-  }
-
-  return inserts.join('\n\n');
 }
 
 async function generateSQLSeed() {
-  console.log('🔄 Generating Kalshi SQL seed file...\n');
+  console.log('🔄 Generating Kalshi SQL seed parts...\n');
 
-  const jsonPath = path.join(process.cwd(), 'data', 'kalshi-markets.json');
+  const dataDir = path.join(process.cwd(), 'data');
+  const jsonPath = path.join(dataDir, 'kalshi-markets.json');
 
   if (!fs.existsSync(jsonPath)) {
     console.error('❌ JSON file not found. Run fetch-kalshi.ts first.');
@@ -129,27 +125,53 @@ async function generateSQLSeed() {
   ) as MarketData[];
 
   console.log(`📊 Loaded ${marketsData.length} markets from JSON`);
+  if (marketsData.length === 0) {
+    console.error('❌ No markets in kalshi-markets.json');
+    process.exit(1);
+  }
+  console.log(`📦 ${INSERTS_PER_PART} inserts per part (set KALSHI_SQL_PART_SIZE to change)\n`);
 
-  const sql = `-- Kalshi Markets Seed
+  const legacyPath = path.join(dataDir, 'seed-kalshi.sql');
+  if (fs.existsSync(legacyPath)) {
+    console.log(`⚠️  Removing legacy monolithic ${legacyPath} (replaced by parts)`);
+    fs.unlinkSync(legacyPath);
+  }
+
+  for (const f of fs.readdirSync(dataDir)) {
+    if (/^seed-kalshi-part-\d+\.sql$/.test(f)) {
+      fs.unlinkSync(path.join(dataDir, f));
+    }
+  }
+
+  const totalParts = Math.ceil(marketsData.length / INSERTS_PER_PART) || 1;
+  let partIndex = 0;
+
+  for (let offset = 0; offset < marketsData.length; offset += INSERTS_PER_PART) {
+    partIndex++;
+    const slice = marketsData.slice(offset, offset + INSERTS_PER_PART);
+    const body = slice.map(buildInsertStatement).join('\n\n');
+
+    const sql = `-- Kalshi seed part ${partIndex}/${totalParts}
 -- Generated: ${new Date().toISOString()}
--- Total markets: ${marketsData.length}
+-- Rows in this part: ${slice.length}
 
 BEGIN;
 
-${generateSQLInserts(marketsData)}
+${body}
 
 COMMIT;
 `;
 
-  const outputPath = path.join(process.cwd(), 'data', 'seed-kalshi.sql');
-  fs.writeFileSync(outputPath, sql);
+    const name = `seed-kalshi-part-${String(partIndex).padStart(4, '0')}.sql`;
+    const outPath = path.join(dataDir, name);
+    fs.writeFileSync(outPath, sql);
 
-  const fileSize = (fs.statSync(outputPath).size / 1024 / 1024).toFixed(2);
+    const mb = (fs.statSync(outPath).size / 1024 / 1024).toFixed(2);
+    console.log(`   ✓ ${name} (${mb} MB, ${slice.length} inserts)`);
+  }
 
-  console.log(`\n✅ SQL seed generated!`);
-  console.log(`   📄 File: ${outputPath}`);
-  console.log(`   📊 Size: ${fileSize} MB`);
-  console.log(`   🔢 Statements: ${marketsData.length}`);
+  console.log(`\n✅ Generated ${partIndex} part file(s) in data/`);
+  console.log(`\n📋 Next: npx tsx scripts/run-sql-seed.ts kalshi`);
 }
 
 generateSQLSeed().catch(console.error);

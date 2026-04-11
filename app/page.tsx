@@ -8,6 +8,7 @@ import { WhaleCard } from '@/components/whales/WhaleCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { BMC_DONATION_URL, PAYPAL_DONATION_URL } from '@/lib/donation-links';
+import { getInternalApiBaseUrl } from '@/lib/site-url';
 import { prisma } from '@/lib/prisma';
 import { WhaleService } from '@/lib/services/whale.service';
 
@@ -81,34 +82,85 @@ async function getStats() {
   }
 }
 
-async function getTopArbitrage(): Promise<ArbitrageOpportunityView[]> {
-  try {
-    const opps = await prisma.arbitrageOpportunity.findMany({
-      where: { active: true },
-      orderBy: { roiPercent: 'desc' },
-      take: 3,
-      include: {
-        match: {
-          include: {
-            marketA: { select: { platform: true, question: true, category: true, volume24h: true } },
-            marketB: { select: { platform: true, question: true, category: true, volume24h: true } }
-          }
+/**
+ * Misma fuente que `/arbitrage` (GET /api/arbitrage/opportunities).
+ * Devuelve `null` si la petición falla (para permitir fallback a DB).
+ */
+async function getTopArbitrageFromScannerApi(): Promise<ArbitrageOpportunityView[] | null> {
+  const base = getInternalApiBaseUrl();
+  const res = await fetch(
+    `${base}/api/arbitrage/opportunities?minRoi=0.001&limit=3&sort=roi`,
+    { next: { revalidate: 60 } }
+  );
+  if (!res.ok) return null;
+  const data = (await res.json()) as {
+    opportunities?: Array<{
+      id: string;
+      question: string;
+      category: string | null;
+      roi: number;
+      polymarket: { yesPrice: number; volume24h?: number };
+      kalshi: { yesPrice: number; volume24h?: number };
+      totalVolume24h: number;
+    }>;
+  };
+  const opps = data.opportunities ?? [];
+  return opps.map((o) => ({
+    id: o.id,
+    question: o.question,
+    category: o.category,
+    polymarket: {
+      yesPrice: o.polymarket.yesPrice,
+      volume24h: o.polymarket.volume24h
+    },
+    kalshi: {
+      yesPrice: o.kalshi.yesPrice,
+      volume24h: o.kalshi.volume24h
+    },
+    roi: o.roi,
+    volume24h: o.totalVolume24h
+  }));
+}
+
+/** Respaldo si el scanner no responde (timeout/red); mismos datos que antes en la home. */
+async function getTopArbitrageFromDb(): Promise<ArbitrageOpportunityView[]> {
+  const opps = await prisma.arbitrageOpportunity.findMany({
+    where: { active: true },
+    orderBy: { roiPercent: 'desc' },
+    take: 3,
+    include: {
+      match: {
+        include: {
+          marketA: { select: { platform: true, question: true, category: true, volume24h: true } },
+          marketB: { select: { platform: true, question: true, category: true, volume24h: true } }
         }
       }
-    });
-    return opps.map((o: (typeof opps)[number]) => {
-      const poly = o.match.marketA.platform === 'POLYMARKET' ? o.match.marketA : o.match.marketB;
-      const kalshi = o.match.marketA.platform === 'KALSHI' ? o.match.marketA : o.match.marketB;
-      return {
-        id: o.id,
-        question: poly.question,
-        category: poly.category,
-        polymarket: { yesPrice: o.polyPrice, volume24h: poly.volume24h },
-        kalshi: { yesPrice: o.kalshiPrice, volume24h: kalshi.volume24h },
-        roi: o.roiPercent,
-        volume24h: (poly.volume24h ?? 0) + (kalshi.volume24h ?? 0)
-      };
-    });
+    }
+  });
+  return opps.map((o: (typeof opps)[number]) => {
+    const poly = o.match.marketA.platform === 'POLYMARKET' ? o.match.marketA : o.match.marketB;
+    const kalshi = o.match.marketA.platform === 'KALSHI' ? o.match.marketA : o.match.marketB;
+    return {
+      id: o.id,
+      question: poly.question,
+      category: poly.category,
+      polymarket: { yesPrice: o.polyPrice, volume24h: poly.volume24h },
+      kalshi: { yesPrice: o.kalshiPrice, volume24h: kalshi.volume24h },
+      roi: o.roiPercent,
+      volume24h: (poly.volume24h ?? 0) + (kalshi.volume24h ?? 0)
+    };
+  });
+}
+
+async function getTopArbitrage(): Promise<ArbitrageOpportunityView[]> {
+  try {
+    const fromApi = await getTopArbitrageFromScannerApi();
+    if (fromApi !== null) return fromApi;
+  } catch {
+    /* usar DB */
+  }
+  try {
+    return await getTopArbitrageFromDb();
   } catch {
     return [];
   }

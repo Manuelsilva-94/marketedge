@@ -16,13 +16,10 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://marketedge-chi.vercel.app'),
   title: 'MarketEdge — Compare Prediction Markets',
   description:
-    'Real-time comparison across Polymarket & Kalshi. Find arbitrage opportunities and follow smart money.',
-  // Static <head> tag for AdSense site verification (crawler sees this without executing JS)
-  other: {
-    'google-adsense-account': 'ca-pub-3037455847496100'
-  }
+    'Real-time comparison across Polymarket & Kalshi. Find arbitrage opportunities and follow smart money.'
 };
 
 export default async function RootLayout({
@@ -33,6 +30,9 @@ export default async function RootLayout({
   const session = await auth();
   return (
     <html lang="en" className="dark">
+      <head>
+        <meta name="google-adsense-account" content="ca-pub-3037455847496100" />
+      </head>
       <body className={`min-h-screen bg-[#0a0a0f] font-sans text-foreground antialiased ${outfit.variable}`}>
         <Script
           async
@@ -50,7 +50,7 @@ export default async function RootLayout({
           </ToastProvider>
         </SessionProvider>
         <DonationBubble />
-        <Analytics />
+        {process.env.VERCEL ? <Analytics /> : null}
       </body>
     </html>
   );

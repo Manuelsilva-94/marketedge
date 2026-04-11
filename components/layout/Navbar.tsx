@@ -6,6 +6,12 @@ import { SearchBar } from '@/components/markets/SearchBar';
 import { useSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
 
+function initialsFromName(name: string | null | undefined): string {
+  const parts = name?.trim().split(/\s+/).filter(Boolean) ?? [];
+  const s = parts.map((p) => p[0]).join('').slice(0, 2).toUpperCase();
+  return s || '?';
+}
+
 export function Navbar() {
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -40,7 +46,7 @@ export function Navbar() {
                 <img src={session.user.image} alt="" className="h-8 w-8 rounded-full" />
               ) : (
                 <span className="h-8 w-8 flex items-center justify-center rounded-full bg-white/10 text-xs font-medium text-white">
-                  {session.user.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() ?? '?'}
+                  {initialsFromName(session.user.name)}
                 </span>
               )}
               <button

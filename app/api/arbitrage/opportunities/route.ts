@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { redis, priceKey } from '@/lib/redis';
+import { getCachedPricesForMatch } from '@/lib/redis';
 import { prisma } from '@/lib/prisma';
 import type { Platform } from '@/lib/db-types';
 import { ComparisonService } from '@/lib/services/comparison.service';
@@ -333,22 +333,15 @@ export async function GET(req: NextRequest) {
               let polyLive: Awaited<ReturnType<PolymarketService['getLiveMarket']>> | undefined;
               let kalshiLive: Awaited<ReturnType<KalshiService['getLiveMarket']>> | undefined;
 
-              try {
-                const cached = await redis.get(priceKey(pair.matchId));
-                if (cached) {
-                  const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached as Record<string, unknown>;
-                  const age = Date.now() - new Date(parsed.updatedAt as string).getTime();
-                  if (age < 180_000) { // ampliar a 3 minutos para dar más margen
-                    polyLive = parsed.poly as typeof polyLive;
-                    kalshiLive = parsed.kalshi as typeof kalshiLive;
-                  } else {
-                    console.log(`[Redis] Cache stale for ${pair.matchId}: age=${Math.round(age / 1000)}s`);
-                  }
-                } else {
-                  console.log(`[Redis] Cache miss for ${pair.matchId}`);
+              const cached = await getCachedPricesForMatch(pair.matchId);
+              if (cached) {
+                const parsed =
+                  typeof cached === 'string' ? JSON.parse(cached) : (cached as Record<string, unknown>);
+                const age = Date.now() - new Date(parsed.updatedAt as string).getTime();
+                if (age < 180_000) {
+                  polyLive = parsed.poly as typeof polyLive;
+                  kalshiLive = parsed.kalshi as typeof kalshiLive;
                 }
-              } catch (redisErr) {
-                console.log(`[Redis] Error for ${pair.matchId}:`, redisErr);
               }
 
               if (!polyLive || !kalshiLive) {
