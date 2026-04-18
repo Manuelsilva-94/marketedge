@@ -7,6 +7,8 @@ export type MatchPair = {
   polyMarketId: string;
   polyExternalId: string;
   kalshiExternalId: string;
+  /** Polymarket taker fee rate from DB (e.g. 0.02, 0.03 for sports). */
+  polyTakerFee: number | null;
 };
 
 export type LoadedSubscriptions = {
@@ -70,7 +72,8 @@ export async function loadVerifiedPairsWithTokens(): Promise<LoadedSubscriptions
           platform: true,
           externalId: true,
           volume24h: true,
-          polyTokenIds: true
+          polyTokenIds: true,
+          takerFee: true
         }
       },
       marketB: {
@@ -79,7 +82,8 @@ export async function loadVerifiedPairsWithTokens(): Promise<LoadedSubscriptions
           platform: true,
           externalId: true,
           volume24h: true,
-          polyTokenIds: true
+          polyTokenIds: true,
+          takerFee: true
         }
       }
     }
@@ -100,7 +104,7 @@ export async function loadVerifiedPairsWithTokens(): Promise<LoadedSubscriptions
     if (poly.platform !== 'POLYMARKET' || kalshi.platform !== 'KALSHI') continue;
 
     const vol = (poly.volume24h ?? 0) + (kalshi.volume24h ?? 0);
-    if (vol <= 100) continue;
+    if (vol <= 0) continue;
 
     let tokenIds = parseClobTokenIds(poly.polyTokenIds);
     if (!tokenIds) {
@@ -125,7 +129,8 @@ export async function loadVerifiedPairsWithTokens(): Promise<LoadedSubscriptions
       matchId: row.id,
       polyMarketId: poly.id,
       polyExternalId: poly.externalId,
-      kalshiExternalId: kalshi.externalId
+      kalshiExternalId: kalshi.externalId,
+      polyTakerFee: poly.takerFee ?? null
     });
 
     yesTokenByMatch.set(row.id, yesTok);

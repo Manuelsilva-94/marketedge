@@ -1,5 +1,6 @@
 import { prisma } from '../prisma';
 import { Platform } from '@/lib/db-types';
+import { effectiveKalshiBuyYes } from '@/lib/fees';
 import { KalshiAuth } from './kalshi-auth';
 
 interface KalshiMarket {
@@ -193,8 +194,7 @@ export class KalshiService {
         return null;
       }
 
-      // Kalshi fee: 7% del profit
-      const effectiveYesPrice = yesPrice + 0.07 * (1 - yesPrice);
+      const effectiveYesPrice = effectiveKalshiBuyYes(yesPrice);
 
       console.log(
         `[Kalshi] ${market.externalId}: yes=${yesPrice.toFixed(3)} (ask=${yesAsk?.toFixed(3) ?? 'n/a'}), no=${noPrice.toFixed(3)} (ask=${noAsk?.toFixed(3) ?? 'n/a'})`

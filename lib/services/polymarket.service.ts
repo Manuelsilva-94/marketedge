@@ -1,5 +1,6 @@
 import { prisma } from '../prisma';
 import { Platform } from '@/lib/db-types';
+import { DEFAULT_POLY_TAKER_FEE, effectivePolymarketBuyYes } from '@/lib/fees';
 
 interface PolymarketMarket {
   id: string;
@@ -39,6 +40,22 @@ interface EventInfo {
 
 export class PolymarketService {
   private gammaUrl = 'https://gamma-api.polymarket.com';
+
+  /** Taker rate from Gamma (e.g. sports_fees_v2 → feeSchedule.rate 0.03). */
+  static parseGammaTakerFeeRate(raw: Record<string, unknown>): number {
+    const fs = raw.feeSchedule;
+    if (fs && typeof fs === 'object' && fs !== null) {
+      const rate = (fs as { rate?: unknown }).rate;
+      if (typeof rate === 'number' && Number.isFinite(rate) && rate >= 0 && rate < 1) {
+        return rate;
+      }
+      if (typeof rate === 'string') {
+        const n = parseFloat(rate);
+        if (Number.isFinite(n) && n >= 0 && n < 1) return n;
+      }
+    }
+    return DEFAULT_POLY_TAKER_FEE;
+  }
 
   /**
    * Obtiene markets de Polymarket
@@ -81,6 +98,8 @@ export class PolymarketService {
     externalId: string;
     platform: string;
     slug?: string | null;
+    /** From DB after normalize; drives effective YES price. */
+    polymarketTakerFee?: number | null;
   }): Promise<{
     yesPrice: number;
     noPrice: number;
@@ -141,7 +160,15 @@ export class PolymarketService {
         );
         return null;
       }
-      const effectiveYesPrice = yesPrice * 1.02;
+      const gammaRate = PolymarketService.parseGammaTakerFeeRate(data as Record<string, unknown>);
+      const takerRate =
+        market.polymarketTakerFee != null &&
+        Number.isFinite(market.polymarketTakerFee) &&
+        market.polymarketTakerFee >= 0 &&
+        market.polymarketTakerFee < 1
+          ? market.polymarketTakerFee
+          : gammaRate;
+      const effectiveYesPrice = effectivePolymarketBuyYes(yesPrice, takerRate);
 
       return {
         yesPrice,
@@ -178,6 +205,9 @@ export class PolymarketService {
     const description = r.description != null ? String(r.description) : null;
     const category = r.groupItemTitle != null ? String(r.groupItemTitle) : r.category != null ? String(r.category) : null;
     const tags = Array.isArray(r.tags) ? (r.tags as string[]) : [];
+    const takerRate = PolymarketService.parseGammaTakerFeeRate(r);
+    const feeType =
+      typeof r.feeType === 'string' && r.feeType.length > 0 ? String(r.feeType) : 'gamma_default';
 
     return {
       platform: Platform.POLYMARKET,
@@ -189,8 +219,8 @@ export class PolymarketService {
       tags,
 
       makerFee: 0.02,
-      takerFee: 0.02,
-      feeStructure: 'flat',
+      takerFee: takerRate,
+      feeStructure: feeType,
 
       volume24h: parseFloat(String(r.volume24hr ?? r.volume24h ?? '0')) || 0,
       volumeTotal: parseFloat(String(r.volume ?? r.volumeTotal ?? '0')) || 0,

@@ -12,11 +12,6 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 55;
 export const preferredRegion = 'iad1';
 
-function effectiveYesPrice(price: number, platform: 'POLYMARKET' | 'KALSHI'): number {
-  if (platform === 'KALSHI') return price + 0.07 * price * (1 - price);
-  return price;
-}
-
 export async function GET(req: NextRequest) {
   const authError = requireCronAuth(req);
   if (authError) return authError;
@@ -62,7 +57,8 @@ export async function GET(req: NextRequest) {
             slug: true,
             volume24h: true,
             url: true,
-            category: true
+            category: true,
+            takerFee: true
           }
         },
         marketB: {
@@ -74,7 +70,8 @@ export async function GET(req: NextRequest) {
             slug: true,
             volume24h: true,
             url: true,
-            category: true
+            category: true,
+            takerFee: true
           }
         }
       }
@@ -91,8 +88,8 @@ export async function GET(req: NextRequest) {
     type PairItem = NonNullable<(typeof pairsWithNulls)[number]>;
     const pairs = pairsWithNulls
       .filter((p: PairItem | null): p is PairItem => p !== null)
-      .filter((p: PairItem) => (p.poly.volume24h ?? 0) + (p.kalshi.volume24h ?? 0) > 100)
-      .slice(0, 40);
+      .filter((p: PairItem) => (p.poly.volume24h ?? 0) + (p.kalshi.volume24h ?? 0) > 0)
+      .slice(0, 55);
 
     console.log(`[CronScanner] ${pairs.length} pairs to scan`);
 
@@ -126,7 +123,8 @@ export async function GET(req: NextRequest) {
                 polyService.getLiveMarket({
                   externalId: pair.poly.externalId,
                   platform: 'POLYMARKET',
-                  slug: pair.poly.slug
+                  slug: pair.poly.slug,
+                  polymarketTakerFee: pair.poly.takerFee
                 }),
                 kalshiService!.getLiveMarket({
                   externalId: pair.kalshi.externalId,
@@ -140,7 +138,12 @@ export async function GET(req: NextRequest) {
             if (!polyLive?.yesPrice || !kalshiLive?.yesPrice) return;
 
             const arbitrage = comparisonService.detectArbitrage({
-              sourceMarket: { ...polyLive, platform: 'POLYMARKET' },
+              sourceMarket: {
+                yesPrice: polyLive.yesPrice,
+                noPrice: polyLive.noPrice,
+                platform: 'POLYMARKET',
+                polymarketTakerFee: pair.poly.takerFee
+              },
               matches: [{ ...kalshiLive, platform: 'KALSHI' }]
             });
 

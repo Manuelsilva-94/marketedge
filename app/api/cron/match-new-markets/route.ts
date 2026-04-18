@@ -8,9 +8,15 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 55;
 
 const MIN_KEYWORD_SCORE = 0.6;
-const MAX_MARKETS_TO_PROCESS = 15;
+const MAX_MARKETS_TO_PROCESS = 22;
 const MAX_CANDIDATES_PER_MARKET = 2;
 const GROQ_DELAY_MS = 1100;
+
+/** Kalshi markets nuevos en esta ventana (prioridad). */
+const RECENT_HOURS = 168; // 7 días
+/** Kalshi activos sin match (cualquier antigüedad), por si se escaparon del matcher. */
+const BACKLOG_TAKE = 10;
+const RECENT_TAKE = 14;
 
 export async function GET(req: NextRequest) {
   const authError = requireCronAuth(req);
@@ -19,24 +25,43 @@ export async function GET(req: NextRequest) {
   const startTime = Date.now();
   const MAX_DURATION_MS = 50_000;
 
-  // Markets de Kalshi insertados en las últimas 12h sin ningún MarketMatch
-  const since = new Date(Date.now() - 12 * 60 * 60 * 1000);
+  const since = new Date(Date.now() - RECENT_HOURS * 60 * 60 * 1000);
 
-  const newKalshiMarkets = await prisma.market.findMany({
-    where: {
-      platform: 'KALSHI',
-      active: true,
-      createdAt: { gte: since },
-      AND: [
-        { matchesAsA: { none: {} } },
-        { matchesAsB: { none: {} } }
-      ]
-    },
-    orderBy: { volume24h: 'desc' },
-    take: MAX_MARKETS_TO_PROCESS
-  });
+  const [recentKalshi, backlogKalshi] = await Promise.all([
+    prisma.market.findMany({
+      where: {
+        platform: 'KALSHI',
+        active: true,
+        createdAt: { gte: since },
+        AND: [{ matchesAsA: { none: {} } }, { matchesAsB: { none: {} } }]
+      },
+      orderBy: { volume24h: 'desc' },
+      take: RECENT_TAKE
+    }),
+    prisma.market.findMany({
+      where: {
+        platform: 'KALSHI',
+        active: true,
+        createdAt: { lt: since },
+        AND: [{ matchesAsA: { none: {} } }, { matchesAsB: { none: {} } }]
+      },
+      orderBy: [{ volume24h: 'desc' }, { createdAt: 'desc' }],
+      take: BACKLOG_TAKE
+    })
+  ]);
 
-  console.log(`[match-new] Found ${newKalshiMarkets.length} new Kalshi markets without match (last 12h)`);
+  const seen = new Set<string>();
+  const newKalshiMarkets = [...recentKalshi, ...backlogKalshi]
+    .filter((m) => {
+      if (seen.has(m.id)) return false;
+      seen.add(m.id);
+      return true;
+    })
+    .slice(0, MAX_MARKETS_TO_PROCESS);
+
+  console.log(
+    `[match-new] ${newKalshiMarkets.length} Kalshi markets without match (${recentKalshi.length} recent ≤${RECENT_HOURS}h + ${backlogKalshi.length} backlog)`
+  );
 
   if (newKalshiMarkets.length === 0) {
     return NextResponse.json({
@@ -48,7 +73,6 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Cargar pool de Polymarket activos en memoria
   const polyPool = await prisma.market.findMany({
     where: { platform: 'POLYMARKET', active: true },
     orderBy: { volume24h: 'desc' },
@@ -87,16 +111,17 @@ export async function GET(req: NextRequest) {
     for (const candidate of topCandidates) {
       if (Date.now() - startTime > MAX_DURATION_MS) break;
 
-      // evaluatePair ya chequea cache y guarda en DB internamente
       const result = await semanticMatcher.evaluatePair(kalshiMarket, candidate.market);
       pairsEvaluated++;
 
       if (result.isEquivalent) {
         newMatches++;
-        console.log(`[match-new] ✅ MATCH: ${kalshiMarket.question.slice(0, 40)} ↔ ${candidate.market.question.slice(0, 40)}`);
+        console.log(
+          `[match-new] ✅ MATCH: ${kalshiMarket.question.slice(0, 40)} ↔ ${candidate.market.question.slice(0, 40)}`
+        );
       }
 
-      await new Promise(r => setTimeout(r, GROQ_DELAY_MS));
+      await new Promise((r) => setTimeout(r, GROQ_DELAY_MS));
     }
 
     processed++;
@@ -110,7 +135,8 @@ export async function GET(req: NextRequest) {
     pairsEvaluated,
     newMatches,
     durationMs,
-    windowHours: 12,
-    message: `${newMatches} new matches found from ${processed} new Kalshi markets`
+    recentWindowHours: RECENT_HOURS,
+    backlogTake: BACKLOG_TAKE,
+    message: `${newMatches} new matches found from ${processed} Kalshi markets (recent + backlog)`
   });
 }

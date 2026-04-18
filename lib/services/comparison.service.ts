@@ -1,8 +1,18 @@
 import { prisma } from '../prisma';
 import type { Market, Platform } from '@/lib/db-types';
+import { effectiveKalshiBuyYes, effectivePolymarketBuyYes, resolvePolymarketTakerFee } from '@/lib/fees';
 import { MatcherService } from './matcher.service';
 import { PolymarketService } from './polymarket.service';
 import { KalshiService } from './kalshi.service';
+
+/** Live leg for arbitrage: raw mid/ask + optional Polymarket taker rate from DB/Gamma. */
+export type ArbitrageLegInput = {
+  yesPrice: number;
+  noPrice: number;
+  platform: Platform;
+  /** When platform is POLYMARKET, taker fee rate (e.g. 0.02 or 0.03). Ignored for KALSHI. */
+  polymarketTakerFee?: number | null;
+};
 
 export interface ArbitrageResult {
   detected: boolean;
@@ -78,21 +88,23 @@ export class ComparisonService {
   }
 
   /**
-   * Calcula el precio efectivo después de fees.
+   * Precio efectivo de compra (YES o NO) después de fees de taker / Kalshi.
    *
-   * POLYMARKET: feesEnabled=false para la mayoría → sin fees por ahora.
-   * KALSHI: fee = 7% × P × (1 - P) por contrato.
+   * KALSHI: p + 0.07·(1−p) (fee sobre ganancia esperada; ver KalshiService).
+   * POLYMARKET: p·(1+r) con r desde `polymarketTakerFee` o default 2%.
    */
-  calculateEffectivePrice(price: number, platform: Platform): number {
+  calculateEffectivePrice(
+    price: number,
+    platform: Platform,
+    opts?: { polymarketTakerFee?: number | null }
+  ): number {
     if (platform === 'POLYMARKET') {
-      return price;
+      const r = resolvePolymarketTakerFee(opts?.polymarketTakerFee);
+      return effectivePolymarketBuyYes(price, r);
     }
-
     if (platform === 'KALSHI') {
-      const fee = 0.07 * price * (1 - price);
-      return price + fee;
+      return effectiveKalshiBuyYes(price);
     }
-
     return price;
   }
 
@@ -101,8 +113,8 @@ export class ComparisonService {
    * Opción A: YES en base + NO en match. Opción B: YES en match + NO en base.
    */
   private detectArbitragePair(
-    baseMarket: { yesPrice: number; noPrice: number; platform: Platform },
-    matchMarket: { yesPrice: number; noPrice: number; platform: Platform }
+    baseMarket: ArbitrageLegInput,
+    matchMarket: ArbitrageLegInput
   ): ArbitrageResult {
     if (
       baseMarket.yesPrice == null ||
@@ -145,16 +157,23 @@ export class ComparisonService {
     const matchYes = matchMarket.yesPrice;
     const matchNo = matchMarket.noPrice;
 
-    const baseEffYes = this.calculateEffectivePrice(baseYes, baseMarket.platform);
-    const baseEffNo = this.calculateEffectivePrice(baseNo, baseMarket.platform);
-    const matchEffYes = this.calculateEffectivePrice(
-      matchYes,
-      matchMarket.platform
-    );
-    const matchEffNo = this.calculateEffectivePrice(
-      matchNo,
-      matchMarket.platform
-    );
+    const basePolyFee =
+      baseMarket.platform === 'POLYMARKET' ? baseMarket.polymarketTakerFee : undefined;
+    const matchPolyFee =
+      matchMarket.platform === 'POLYMARKET' ? matchMarket.polymarketTakerFee : undefined;
+
+    const baseEffYes = this.calculateEffectivePrice(baseYes, baseMarket.platform, {
+      polymarketTakerFee: basePolyFee
+    });
+    const baseEffNo = this.calculateEffectivePrice(baseNo, baseMarket.platform, {
+      polymarketTakerFee: basePolyFee
+    });
+    const matchEffYes = this.calculateEffectivePrice(matchYes, matchMarket.platform, {
+      polymarketTakerFee: matchPolyFee
+    });
+    const matchEffNo = this.calculateEffectivePrice(matchNo, matchMarket.platform, {
+      polymarketTakerFee: matchPolyFee
+    });
 
     const totalA = baseEffYes + matchEffNo;
     const roiA = totalA < 1 ? (1 - totalA) / totalA : 0;
@@ -232,11 +251,13 @@ export class ComparisonService {
       yesPrice?: number;
       noPrice?: number;
       platform: Platform;
+      polymarketTakerFee?: number | null;
     };
     matches: Array<{
       yesPrice?: number;
       noPrice?: number;
       platform: Platform;
+      polymarketTakerFee?: number | null;
     }>;
   }): ArbitrageResult {
     const { sourceMarket, matches } = comparison;
@@ -256,10 +277,11 @@ export class ComparisonService {
       };
     }
 
-    const base = {
+    const base: ArbitrageLegInput = {
       yesPrice: sourceMarket.yesPrice,
       noPrice: sourceMarket.noPrice,
-      platform: sourceMarket.platform
+      platform: sourceMarket.platform,
+      polymarketTakerFee: sourceMarket.polymarketTakerFee
     };
 
     let best: ArbitrageResult = {
@@ -273,10 +295,11 @@ export class ComparisonService {
 
     for (const m of matches) {
       if (m.yesPrice == null || m.noPrice == null) continue;
-      const match = {
+      const match: ArbitrageLegInput = {
         yesPrice: m.yesPrice,
         noPrice: m.noPrice,
-        platform: m.platform
+        platform: m.platform,
+        polymarketTakerFee: m.polymarketTakerFee
       };
       const result = this.detectArbitragePair(base, match);
       if (
@@ -302,7 +325,8 @@ export class ComparisonService {
         const result = await poly.getLiveMarket({
           externalId: market.externalId,
           platform: 'POLYMARKET',
-          slug: market.slug
+          slug: market.slug,
+          polymarketTakerFee: market.takerFee
         });
         return result ? { yesPrice: result.yesPrice, noPrice: result.noPrice } : fallback;
       }
@@ -351,6 +375,9 @@ export class ComparisonService {
       market: { ...m.market, ...matchPricesList[i] }
     }));
 
+    const sourcePolyFee =
+      sourceMarket.platform === 'POLYMARKET' ? sourceMarket.takerFee : undefined;
+
     const sourceData = {
       id: sourceMarket.id,
       platform: sourceMarket.platform,
@@ -359,11 +386,13 @@ export class ComparisonService {
       noPrice: sourceWithPrices.noPrice,
       effectiveYes: this.calculateEffectivePrice(
         sourceWithPrices.yesPrice ?? 0.5,
-        sourceMarket.platform
+        sourceMarket.platform,
+        { polymarketTakerFee: sourcePolyFee }
       ),
       effectiveNo: this.calculateEffectivePrice(
         sourceWithPrices.noPrice ?? 1 - (sourceWithPrices.yesPrice ?? 0.5),
-        sourceMarket.platform
+        sourceMarket.platform,
+        { polymarketTakerFee: sourcePolyFee }
       ),
       fees: sourceMarket.takerFee ?? 0,
       liquidity: sourceMarket.liquidity,
@@ -375,31 +404,36 @@ export class ComparisonService {
       url: sourceMarket.url ?? ''
     };
 
-    const matchesData = matchesWithPrices.map((m) => ({
-      id: m.market.id,
-      platform: m.market.platform,
-      question: m.market.question,
-      yesPrice: m.market.yesPrice ?? 0.5,
-      noPrice: m.market.noPrice ?? 0.5,
-      effectiveYes: this.calculateEffectivePrice(
-        m.market.yesPrice ?? 0.5,
-        m.market.platform
-      ),
-      effectiveNo: this.calculateEffectivePrice(
-        m.market.noPrice ?? 1 - (m.market.yesPrice ?? 0.5),
-        m.market.platform
-      ),
-      fees: m.market.takerFee ?? 0,
-      liquidity: m.market.liquidity,
-      volume24h: m.market.volume24h,
-      volumeTotal: m.market.volumeTotal,
-      endDate: m.market.endDate?.toISOString(),
-      category: m.market.category ?? undefined,
-      lastSyncedAt: m.market.lastSyncedAt.toISOString(),
-      url: m.market.url ?? '',
-      matchScore: m.score,
-      matchType: m.matchType
-    }));
+    const matchesData = matchesWithPrices.map((m) => {
+      const polyFee = m.market.platform === 'POLYMARKET' ? m.market.takerFee : undefined;
+      return {
+        id: m.market.id,
+        platform: m.market.platform,
+        question: m.market.question,
+        yesPrice: m.market.yesPrice ?? 0.5,
+        noPrice: m.market.noPrice ?? 0.5,
+        effectiveYes: this.calculateEffectivePrice(
+          m.market.yesPrice ?? 0.5,
+          m.market.platform,
+          { polymarketTakerFee: polyFee }
+        ),
+        effectiveNo: this.calculateEffectivePrice(
+          m.market.noPrice ?? 1 - (m.market.yesPrice ?? 0.5),
+          m.market.platform,
+          { polymarketTakerFee: polyFee }
+        ),
+        fees: m.market.takerFee ?? 0,
+        liquidity: m.market.liquidity,
+        volume24h: m.market.volume24h,
+        volumeTotal: m.market.volumeTotal,
+        endDate: m.market.endDate?.toISOString(),
+        category: m.market.category ?? undefined,
+        lastSyncedAt: m.market.lastSyncedAt.toISOString(),
+        url: m.market.url ?? '',
+        matchScore: m.score,
+        matchType: m.matchType
+      };
+    });
 
     const allMarkets = [sourceWithPrices, ...matchesWithPrices.map((m) => m.market)];
     const allData = [sourceData, ...matchesData];
@@ -421,8 +455,22 @@ export class ComparisonService {
     );
 
     const arbitrage = this.detectArbitrage({
-      sourceMarket: sourceData,
-      matches: matchesData
+      sourceMarket: {
+        yesPrice: sourceData.yesPrice,
+        noPrice: sourceData.noPrice,
+        platform: sourceData.platform,
+        polymarketTakerFee: sourceMarket.platform === 'POLYMARKET' ? sourceMarket.takerFee : undefined
+      },
+      matches: matchesData.map((m) => {
+        const full = matchesWithPrices.find((x) => x.market.id === m.id)?.market;
+        return {
+          yesPrice: m.yesPrice,
+          noPrice: m.noPrice,
+          platform: m.platform,
+          polymarketTakerFee:
+            m.platform === 'POLYMARKET' ? (full?.takerFee ?? null) : undefined
+        };
+      })
     });
 
     console.log(`   Best YES: ${bestYes.platform} at $${bestYes.effectiveYes.toFixed(3)}`);

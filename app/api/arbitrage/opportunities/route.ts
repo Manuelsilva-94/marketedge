@@ -248,6 +248,7 @@ export async function GET(req: NextRequest) {
         slug: string | null;
         volume24h: number;
         url: string | null;
+        takerFee: number | null;
       };
       kalshiMarket: {
         id: string;
@@ -292,15 +293,13 @@ export async function GET(req: NextRequest) {
 
     // FILTRO: Ordenar por volumen combinado y tomar solo los top N
     // para no exceder el timeout al fetchear precios
-    const MAX_PAIRS_TO_PRICE = 100;
+    const MAX_PAIRS_TO_PRICE = 220;
 
     const filteredPairs = confirmedPairs
       .filter((pair: ConfirmedPair) => {
         const polyVol = pair.polymarket.volume24h ?? 0;
         const kalshiVol = pair.kalshiMarket.volume24h ?? 0;
-        // Excluir pares donde AMBOS tienen volumen 0 (markets resueltos/inactivos)
-        // También excluir si el volumen combinado es menor a 100 (ruido)
-        return (polyVol + kalshiVol) > 100;
+        return polyVol + kalshiVol > 0;
       })
       .sort((a: ConfirmedPair, b: ConfirmedPair) => {
         const volA = (a.polymarket.volume24h ?? 0) + a.kalshiMarket.volume24h;
@@ -310,7 +309,7 @@ export async function GET(req: NextRequest) {
       .slice(0, MAX_PAIRS_TO_PRICE);
 
     console.log(
-      `[Scanner] ${confirmedPairs.length} verified pairs → ${filteredPairs.length} after volume filter`
+      `[Scanner] ${confirmedPairs.length} verified pairs → ${filteredPairs.length} to price (incl. low volume)`
     );
 
     // PASO 2: Fetchear precios en batches de CONCURRENCY
@@ -347,7 +346,8 @@ export async function GET(req: NextRequest) {
                   polyService.getLiveMarket({
                     externalId: pair.polymarket.externalId,
                     platform: 'POLYMARKET',
-                    slug: pair.polymarket.slug
+                    slug: pair.polymarket.slug,
+                    polymarketTakerFee: pair.polymarket.takerFee
                   }),
                   kalshiService!.getLiveMarket({
                     externalId: pair.kalshiMarket.externalId,
@@ -374,7 +374,12 @@ export async function GET(req: NextRequest) {
               pricedPairs += 1;
 
               const arbitrage = comparisonService.detectArbitrage({
-                sourceMarket: { ...polyLive, platform: 'POLYMARKET' },
+                sourceMarket: {
+                  yesPrice: polyLive.yesPrice,
+                  noPrice: polyLive.noPrice,
+                  platform: 'POLYMARKET',
+                  polymarketTakerFee: pair.polymarket.takerFee
+                },
                 matches: [{ ...kalshiLive, platform: 'KALSHI' }]
               });
 

@@ -17,16 +17,21 @@ type MatchState = {
 export class PriceManager {
   private comparison = new ComparisonService();
   private byMatch = new Map<string, MatchState>();
+  private polyTakerByMatch = new Map<string, number | null>();
   private dirtyCache = new Set<string>();
   private flushTimer: ReturnType<typeof setInterval> | null = null;
   private pairs: MatchPair[] = [];
 
   constructor(pairList: MatchPair[]) {
-    this.pairs = pairList;
+    this.setPairs(pairList);
   }
 
   setPairs(pairs: MatchPair[]): void {
     this.pairs = pairs;
+    this.polyTakerByMatch.clear();
+    for (const p of pairs) {
+      this.polyTakerByMatch.set(p.matchId, p.polyTakerFee);
+    }
   }
 
   async hydrateFromDb(): Promise<void> {
@@ -89,11 +94,13 @@ export class PriceManager {
     const poly = st.poly;
     const kal = st.kalshi;
 
+    const polyFee = this.polyTakerByMatch.get(matchId) ?? null;
     const result = this.comparison.detectArbitrage({
       sourceMarket: {
         yesPrice: poly.yes,
         noPrice: poly.no,
-        platform: 'POLYMARKET'
+        platform: 'POLYMARKET',
+        polymarketTakerFee: polyFee
       },
       matches: [
         {
