@@ -8,6 +8,7 @@ import {
 import { requireCronAuth } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
+/** Hobby plan max ~60s; use this route from local/cron-job.org Pro or expect truncation. */
 export const maxDuration = 120;
 export const preferredRegion = 'iad1';
 

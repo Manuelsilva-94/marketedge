@@ -8,6 +8,7 @@ import {
 import { requireCronAuth } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
+/** Hobby plan max ~60s; use `npm run discover-local` for full runs. */
 export const maxDuration = 120;
 export const preferredRegion = 'iad1';
 

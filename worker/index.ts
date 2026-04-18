@@ -3,7 +3,8 @@ import { PriceManager } from './price-manager';
 import { PolymarketWsClient } from './polymarket-ws';
 import { KalshiWsClient } from './kalshi-ws';
 
-const PAIR_REFRESH_MS = 600_000;
+/** Refresh verified pair list from DB every 30 min (reduces Supabase egress vs 10 min). */
+const PAIR_REFRESH_MS = 30 * 60 * 1000;
 
 let subs: LoadedSubscriptions | null = null;
 let priceManager: PriceManager | null = null;

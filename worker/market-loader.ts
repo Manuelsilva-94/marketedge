@@ -58,6 +58,7 @@ async function fetchGammaClobTokenIds(conditionId: string): Promise<string[] | n
  * returns subscription maps for WebSocket clients.
  */
 export async function loadVerifiedPairsWithTokens(): Promise<LoadedSubscriptions> {
+  // Minimal `select` on Market to limit Supabase egress on worker refresh.
   const verifiedPairs = await prisma.marketMatch.findMany({
     where: {
       isEquivalent: true,

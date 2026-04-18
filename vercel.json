@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/full-sync-kalshi",
-      "schedule": "0 3 * * 0"
+      "path": "/api/cron/sync-markets",
+      "schedule": "0 6 * * *"
     }
   ]
 }

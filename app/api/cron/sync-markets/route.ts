@@ -46,25 +46,38 @@ export async function GET(request: Request) {
       results.errors.push(msg);
     }
 
-    // Cleanup: Eliminar markets closed hace >30 días
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // Cleanup: inactive con endDate > 7 días atrás
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const deleted = await prisma.market.deleteMany({
+    const deletedInactive = await prisma.market.deleteMany({
       where: {
         active: false,
-        endDate: { lt: thirtyDaysAgo }
+        endDate: { lt: sevenDaysAgo }
       }
     });
 
-    console.log(`\n🗑️ Cleaned up ${deleted.count} old markets`);
+    // Resolved sin matches útiles, más de 7 días (reduce tamaño DB / egress)
+    const resolvedCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const deletedResolvedStale = await prisma.market.deleteMany({
+      where: {
+        active: false,
+        resolvedAt: { not: null, lt: resolvedCutoff },
+        AND: [{ matchesAsA: { none: {} } }, { matchesAsB: { none: {} } }]
+      }
+    });
+
+    const deleted = deletedInactive.count + deletedResolvedStale.count;
+    console.log(
+      `\n🗑️ Cleaned up ${deletedInactive.count} inactive by endDate + ${deletedResolvedStale.count} resolved stale (no matches) = ${deleted} total`
+    );
 
     const duration = Math.round((Date.now() - startTime) / 1000);
 
     console.log(`\n✅ CRON COMPLETE:`);
     console.log(`   - Polymarket: ${results.polymarket}`);
     console.log(`   - Kalshi: ${results.kalshi}`);
-    console.log(`   - Cleaned: ${deleted.count}`);
+    console.log(`   - Cleaned: ${deleted}`);
     console.log(`   - Duration: ${duration}s`);
     console.log(`   - Errors: ${results.errors.length}`);
 
@@ -73,7 +86,9 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString(),
       duration,
       results,
-      cleaned: deleted.count,
+      cleaned: deleted,
+      cleanedInactiveEndDate: deletedInactive.count,
+      cleanedResolvedStale: deletedResolvedStale.count,
       errors: results.errors
     });
   } catch (error) {

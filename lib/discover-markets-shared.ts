@@ -7,16 +7,19 @@ export const DEADLINE_MS = 115_000;
 export const POLY_PAGE = 100;
 export const KALSHI_EVENTS_LIMIT = 200;
 export const INSERT_CHUNK = 400;
-export const ID_CHUNK = 800;
 
+/** Inserts rows with skipDuplicates; returns total rows actually inserted (no pre-read dedup). */
 export async function createManyChunked<T extends Record<string, unknown>>(
   rows: T[],
   chunk = INSERT_CHUNK
-): Promise<void> {
+): Promise<number> {
+  let inserted = 0;
   for (let i = 0; i < rows.length; i += chunk) {
     const slice = rows.slice(i, i + chunk) as T[];
-    await prisma.market.createMany({ data: slice as never[], skipDuplicates: true });
+    const r = await prisma.market.createMany({ data: slice as never[], skipDuplicates: true });
+    inserted += r.count;
   }
+  return inserted;
 }
 
 export type KalshiDiscoverResult = {
@@ -99,34 +102,18 @@ export async function runDiscoverKalshi(deadline: number): Promise<KalshiDiscove
     console.log(`[discover-kalshi] Fetched ${allMarkets.length} markets (${out.pages} event pages)`);
 
     if (allMarkets.length > 0) {
-      const tickers = allMarkets
-        .map(({ market }) => (market as { ticker: string }).ticker)
-        .filter(Boolean);
-      const existingSet = new Set<string>();
-      for (let i = 0; i < tickers.length; i += ID_CHUNK) {
-        const slice = tickers.slice(i, i + ID_CHUNK);
-        const existing = await prisma.market.findMany({
-          where: { platform: 'KALSHI', externalId: { in: slice } },
-          select: { externalId: true }
-        });
-        for (const m of existing) existingSet.add(m.externalId);
-      }
-
-      const newMarkets = allMarkets.filter(({ market }) => {
-        const ticker = (market as { ticker: string }).ticker;
-        return ticker && !existingSet.has(ticker);
-      });
-
-      if (newMarkets.length > 0) {
-        console.log(`[discover-kalshi] ${newMarkets.length} new markets to insert`);
-        const normalized = newMarkets.map(({ market, event }) =>
+      const normalized = allMarkets
+        .filter(({ market }) => Boolean((market as { ticker: string }).ticker))
+        .map(({ market, event }) =>
           kalshiService.normalizeMarketFromEvent(
             market as KalshiMarketArg,
             event as KalshiEventArg
           )
         );
-        await createManyChunked(normalized);
-        out.newInDB = newMarkets.length;
+      const inserted = await createManyChunked(normalized);
+      out.newInDB = inserted;
+      if (inserted > 0) {
+        console.log(`[discover-kalshi] inserted ${inserted} new rows (skipDuplicates, no pre-read)`);
       }
     }
   } catch (err) {
@@ -196,33 +183,14 @@ export async function runDiscoverPolymarket(deadline: number): Promise<Polymarke
       totalFetched += pageMarkets.length;
 
       if (pageMarkets.length > 0) {
-        const externalIds = pageMarkets
-          .map(({ raw }) => String(raw.id ?? raw.conditionId ?? raw.slug ?? ''))
-          .filter(Boolean);
-
-        const existingSet = new Set<string>();
-        for (let i = 0; i < externalIds.length; i += ID_CHUNK) {
-          const slice = externalIds.slice(i, i + ID_CHUNK);
-          const existing = await prisma.market.findMany({
-            where: { platform: 'POLYMARKET', externalId: { in: slice } },
-            select: { externalId: true }
-          });
-          for (const m of existing) existingSet.add(m.externalId);
-        }
-
-        const newMarkets = pageMarkets.filter(({ raw }) => {
-          const id = String(raw.id ?? raw.conditionId ?? raw.slug ?? '');
-          return id && !existingSet.has(id);
-        });
-
-        if (newMarkets.length > 0) {
-          const normalized = newMarkets.map(({ raw, eventInfo }) =>
-            polyService.normalizeMarket(raw, eventInfo)
-          );
-          await createManyChunked(normalized);
-          totalNew += newMarkets.length;
+        const normalized = pageMarkets
+          .filter(({ raw }) => Boolean(String(raw.id ?? raw.conditionId ?? raw.slug ?? '').trim()))
+          .map(({ raw, eventInfo }) => polyService.normalizeMarket(raw, eventInfo));
+        const inserted = await createManyChunked(normalized);
+        totalNew += inserted;
+        if (inserted > 0) {
           console.log(
-            `[discover-polymarket] offset=${offset}: +${newMarkets.length} new (page markets=${pageMarkets.length})`
+            `[discover-polymarket] offset=${offset}: +${inserted} inserted (page markets=${pageMarkets.length}, skipDuplicates)`
           );
         }
       }

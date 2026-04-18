@@ -12,6 +12,10 @@
     "start": "next start",
     "prisma:studio": "npx prisma studio",
     "fetch-kalshi": "tsx scripts/fetch-kalshi.ts",
+    "discover-local": "tsx scripts/discover-local.ts",
+    "discover-sports-local": "tsx scripts/discover-sports-local.ts",
+    "sync-active-local": "tsx scripts/sync-active-local.ts",
+    "cleanup-markets": "tsx scripts/cleanup-markets.ts",
     "worker": "tsx worker/index.ts"
   },
   "dependencies": {
