@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { MatcherService } from '@/lib/services/matcher.service';
 import { SemanticMatcherService } from '@/lib/services/semantic-matcher.service';
 import { requireCronAuth } from '@/lib/cron-auth';
+import { extractSearchKeywords, searchPolymarketCandidates } from '@/lib/polymarket-search';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 55;
@@ -17,6 +18,81 @@ const RECENT_HOURS = 168; // 7 días
 /** Kalshi activos sin match (cualquier antigüedad), por si se escaparon del matcher. */
 const BACKLOG_TAKE = 10;
 const RECENT_TAKE = 14;
+
+type CandidateMarket = {
+  id: string;
+  platform: 'POLYMARKET';
+  externalId: string;
+  question: string;
+  slug: string;
+  description: string | null;
+  category: string | null;
+  tags: string[];
+  makerFee: number | null;
+  takerFee: number | null;
+  feeStructure: string | null;
+  volume24h: number;
+  volumeTotal: number;
+  liquidity: number;
+  openInterest: number | null;
+  normalizedQuestion: string | null;
+  active: boolean;
+  endDate: Date | null;
+  resolvedAt: Date | null;
+  outcome: string | null;
+  imageUrl: string | null;
+  url: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  lastSyncedAt: Date;
+  eventId: string | null;
+  eventSlug: string | null;
+  eventTitle: string | null;
+  seriesId: string | null;
+  polyTokenIds: string | null;
+};
+
+function toCandidateMarket(item: {
+  externalId: string;
+  question: string;
+  slug: string;
+  volume24h: number;
+  endDate: Date | null;
+}): CandidateMarket {
+  const now = new Date();
+  return {
+    id: `temp_poly_${item.externalId}`,
+    platform: 'POLYMARKET',
+    externalId: item.externalId,
+    question: item.question,
+    slug: item.slug,
+    description: null,
+    category: null,
+    tags: [],
+    makerFee: null,
+    takerFee: null,
+    feeStructure: null,
+    volume24h: item.volume24h,
+    volumeTotal: 0,
+    liquidity: 0,
+    openInterest: null,
+    normalizedQuestion: null,
+    active: true,
+    endDate: item.endDate,
+    resolvedAt: null,
+    outcome: null,
+    imageUrl: null,
+    url: null,
+    createdAt: now,
+    updatedAt: now,
+    lastSyncedAt: now,
+    eventId: null,
+    eventSlug: null,
+    eventTitle: null,
+    seriesId: null,
+    polyTokenIds: null
+  };
+}
 
 export async function GET(req: NextRequest) {
   const authError = requireCronAuth(req);
@@ -73,14 +149,6 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const polyPool = await prisma.market.findMany({
-    where: { platform: 'POLYMARKET', active: true },
-    orderBy: { volume24h: 'desc' },
-    take: 15000
-  });
-
-  console.log(`[match-new] Polymarket pool: ${polyPool.length} markets`);
-
   const matcher = new MatcherService();
   const semanticMatcher = new SemanticMatcherService();
 
@@ -94,11 +162,10 @@ export async function GET(req: NextRequest) {
       break;
     }
 
-    const candidates = matcher.findMatchesFromCandidates(
-      kalshiMarket,
-      polyPool,
-      MIN_KEYWORD_SCORE
-    );
+    const query = extractSearchKeywords(kalshiMarket.question);
+    const apiCandidates = await searchPolymarketCandidates(query, 24);
+    const polyCandidates = apiCandidates.map(toCandidateMarket);
+    const candidates = matcher.findMatchesFromCandidates(kalshiMarket, polyCandidates, MIN_KEYWORD_SCORE);
 
     if (candidates.length === 0) {
       processed++;
@@ -111,7 +178,35 @@ export async function GET(req: NextRequest) {
     for (const candidate of topCandidates) {
       if (Date.now() - startTime > MAX_DURATION_MS) break;
 
-      const result = await semanticMatcher.evaluatePair(kalshiMarket, candidate.market);
+      const existingPoly = await prisma.market.findUnique({
+        where: {
+          platform_externalId: {
+            platform: 'POLYMARKET',
+            externalId: candidate.market.externalId
+          }
+        }
+      });
+
+      const polyMarketRecord =
+        existingPoly ??
+        (await prisma.market.create({
+          data: {
+            platform: 'POLYMARKET',
+            externalId: candidate.market.externalId,
+            question: candidate.market.question,
+            slug: candidate.market.slug,
+            category: candidate.market.category,
+            tags: candidate.market.tags,
+            volume24h: candidate.market.volume24h,
+            volumeTotal: 0,
+            liquidity: 0,
+            active: true,
+            endDate: candidate.market.endDate,
+            lastSyncedAt: new Date()
+          }
+        }));
+
+      const result = await semanticMatcher.evaluatePair(kalshiMarket, polyMarketRecord);
       pairsEvaluated++;
 
       if (result.isEquivalent) {

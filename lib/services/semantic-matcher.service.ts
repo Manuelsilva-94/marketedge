@@ -11,6 +11,54 @@ interface SemanticMatchResult {
 }
 
 export class SemanticMatcherService {
+  private normalizeEntityKey(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private extractWinnerSubject(question: string): string | null {
+    const primary = question.split(' — ')[0]?.trim() ?? question.trim();
+    const match = primary.match(/^will\s+(.+?)\s+win\s+/i);
+    if (!match) return null;
+    return this.normalizeEntityKey(match[1]);
+  }
+
+  private extractWinnerCompetition(question: string): string | null {
+    const primary = question.split(' — ')[0]?.trim() ?? question.trim();
+    const match = primary.match(/\bwin\s+(?:the\s+)?(.+?)(?:\?|$)/i);
+    if (!match) return null;
+    return this.normalizeEntityKey(match[1]).replace(/\b\d{4}(?:-\d{2,4})?\b/g, '').trim();
+  }
+
+  private isWinnerQuestion(question: string): boolean {
+    const primary = question.split(' — ')[0]?.trim() ?? question.trim();
+    return /^will\s+.+\s+win\s+/i.test(primary);
+  }
+
+  private hardMismatchReason(questionA: string, questionB: string): string | null {
+    const winnerA = this.isWinnerQuestion(questionA);
+    const winnerB = this.isWinnerQuestion(questionB);
+    if (!winnerA || !winnerB) return null;
+
+    const subjectA = this.extractWinnerSubject(questionA);
+    const subjectB = this.extractWinnerSubject(questionB);
+    const competitionA = this.extractWinnerCompetition(questionA);
+    const competitionB = this.extractWinnerCompetition(questionB);
+
+    if (competitionA && competitionB && competitionA !== competitionB) {
+      return 'Winner market mismatch: different competition';
+    }
+    if (subjectA && subjectB && subjectA !== subjectB) {
+      return 'Winner market mismatch: different team/entity';
+    }
+    return null;
+  }
+
   static async clearErrorCache(): Promise<number> {
     const result = await prisma.marketMatch.deleteMany({
       where: { confidence: 0 }
@@ -125,6 +173,9 @@ Respond with valid JSON only, no explanation outside the JSON:
     const threshB = thresholdMatch(b);
     if (threshA && threshB && threshA[1] !== threshB[1]) return true;
 
+    // Regla 5: mercados "Will X win Y?" deben tener mismo equipo y misma competición
+    if (this.hardMismatchReason(questionA, questionB)) return true;
+
     return false;
   }
 
@@ -161,11 +212,11 @@ Respond with valid JSON only, no explanation outside the JSON:
     let result: SemanticMatchResult;
 
     if (SemanticMatcherService.inFlight >= SemanticMatcherService.MAX_CONCURRENT) {
-      console.log(`[SemanticMatcher] Concurrency limit, passing pair through`);
+      console.log(`[SemanticMatcher] Concurrency limit, rejecting pair defensively`);
       return {
-        isEquivalent: true,
-        confidence: 0.5,
-        reasoning: 'Fallback: concurrency limit'
+        isEquivalent: false,
+        confidence: 0,
+        reasoning: 'Fallback: semantic validation unavailable (concurrency)'
       };
     }
 
@@ -185,17 +236,26 @@ Respond with valid JSON only, no explanation outside the JSON:
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       console.warn(
-        `[SemanticMatcher] API unavailable, passing pair through: ${errMsg.slice(0, 80)}`
+        `[SemanticMatcher] API unavailable, rejecting pair defensively: ${errMsg.slice(0, 80)}`
       );
 
-      // Gemini no disponible → dejar pasar el par sin guardar en DB
+      // Si el validador no está disponible, NO marcar equivalencia para evitar falsos positivos.
       return {
-        isEquivalent: true,
-        confidence: 0.5,
+        isEquivalent: false,
+        confidence: 0,
         reasoning: 'Fallback: semantic validation unavailable'
       };
     } finally {
       SemanticMatcherService.inFlight--;
+    }
+
+    const hardMismatch = this.hardMismatchReason(marketA.question, marketB.question);
+    if (hardMismatch) {
+      result = {
+        isEquivalent: false,
+        confidence: 0,
+        reasoning: hardMismatch
+      };
     }
 
     // Guardar como equivalente solo con alta confianza (>= 0.82)

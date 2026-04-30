@@ -89,7 +89,6 @@ model Market {
   // Identity
   question    String
   slug        String
-  description String?
   category    String?
   tags        String[]
 
@@ -105,7 +104,7 @@ model Market {
   openInterest Float?
 
   // Matching
-  normalizedQuestion String?
+
 
   // Status
   active     Boolean   @default(true)
@@ -137,7 +136,6 @@ model Market {
   @@unique([platform, externalId])
   @@index([slug])
   @@index([platform, active])
-  @@index([normalizedQuestion])
   @@index([category])
   @@index([eventSlug])
   @@index([seriesId])
@@ -165,31 +163,7 @@ model MarketMatch {
   @@index([marketBId])
 }
 
-model Comparison {
-  id String @id @default(cuid())
 
-  // Markets being compared
-  marketIds String[] // Array of market IDs
-
-  // Best prices
-  bestYesPrice    Float
-  bestYesPlatform Platform
-  bestNoPrice     Float
-  bestNoPlatform  Platform
-
-  // Arbitrage
-  arbitrageExists Boolean @default(false)
-  arbitrageROI    Float?
-  arbitrageProfit Float?
-  strategy        String?
-
-  // Metadata
-  createdAt DateTime @default(now())
-  expiresAt DateTime // 5 min TTL
-
-  @@index([arbitrageExists])
-  @@index([createdAt])
-}
 
 model SyncLog {
   id           String   @id @default(cuid())

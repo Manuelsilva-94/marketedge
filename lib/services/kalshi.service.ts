@@ -247,7 +247,6 @@ export class KalshiService {
       externalId: raw.ticker,
       question,
       slug: raw.ticker.toLowerCase(),
-      description: raw.subtitle || null,
       category: raw.category || null,
       tags: [],
 
@@ -356,7 +355,6 @@ export class KalshiService {
     const updateFields = (normalized: ReturnType<typeof this.normalizeMarketFromEvent>) => ({
       question: normalized.question,
       slug: normalized.slug,
-      description: normalized.description,
       category: normalized.category,
       tags: normalized.tags,
       eventId: normalized.eventId,
@@ -505,7 +503,6 @@ export class KalshiService {
           update: {
             question: normalized.question,
             slug: normalized.slug,
-            description: normalized.description,
             category: normalized.category,
             eventId: normalized.eventId,
             eventSlug: normalized.eventSlug,
@@ -589,7 +586,6 @@ export class KalshiService {
           update: {
             question: normalized.question,
             slug: normalized.slug,
-            description: normalized.description,
             category: normalized.category,
             tags: normalized.tags,
             eventId: normalized.eventId,

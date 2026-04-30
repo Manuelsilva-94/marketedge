@@ -7,7 +7,6 @@ interface PolymarketMarket {
   question?: string;
   slug?: string;
   title?: string;
-  description?: string;
   outcomePrices?: string;
   volume24hr?: string;
   volume?: string;
@@ -202,7 +201,6 @@ export class PolymarketService {
     const r = raw as Record<string, unknown>;
     const question = String(r.question ?? r.title ?? '');
     const slug = String(r.slug ?? r.id ?? '');
-    const description = r.description != null ? String(r.description) : null;
     const category = r.groupItemTitle != null ? String(r.groupItemTitle) : r.category != null ? String(r.category) : null;
     const tags = Array.isArray(r.tags) ? (r.tags as string[]) : [];
     const takerRate = PolymarketService.parseGammaTakerFeeRate(r);
@@ -214,7 +212,6 @@ export class PolymarketService {
       externalId: String(r.id ?? r.conditionId ?? r.slug ?? ''),
       question,
       slug,
-      description,
       category,
       tags,
 
@@ -363,7 +360,6 @@ export class PolymarketService {
           update: {
             question: normalized.question,
             slug: normalized.slug,
-            description: normalized.description,
             category: normalized.category,
             tags: normalized.tags,
             eventId: normalized.eventId,
@@ -490,7 +486,6 @@ export class PolymarketService {
           update: {
             question: normalized.question,
             slug: normalized.slug,
-            description: normalized.description,
             category: normalized.category,
             tags: normalized.tags,
             eventId: normalized.eventId,
@@ -575,7 +570,6 @@ export class PolymarketService {
           update: {
             question: normalized.question,
             slug: normalized.slug,
-            description: normalized.description,
             category: normalized.category,
             tags: normalized.tags,
             eventId: normalized.eventId,

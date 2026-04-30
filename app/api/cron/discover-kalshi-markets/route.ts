@@ -1,10 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Platform } from '@/lib/db-types';
-import {
-  DEADLINE_MS,
-  runDiscoverKalshi,
-  writeSyncLogIfNeeded
-} from '@/lib/discover-markets-shared';
 import { requireCronAuth } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
@@ -16,20 +10,10 @@ export async function GET(req: NextRequest) {
   const authError = requireCronAuth(req);
   if (authError) return authError;
 
-  const deadline = Date.now() + DEADLINE_MS;
-  const kalshi = await runDiscoverKalshi(deadline);
-
-  await writeSyncLogIfNeeded(
-    Platform.KALSHI,
-    kalshi.newInDB,
-    kalshi.durationMs,
-    kalshi.error ? 1 : 0
+  return NextResponse.json(
+    {
+      error: 'This endpoint is deprecated. Use /api/cron/match-new-markets.'
+    },
+    { status: 410 }
   );
-
-  console.log(`[discover-kalshi-markets] Done in ${kalshi.durationMs}ms`, kalshi);
-
-  return NextResponse.json({
-    platform: 'kalshi' as const,
-    ...kalshi
-  });
 }

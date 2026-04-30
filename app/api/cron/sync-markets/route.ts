@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PolymarketService } from '@/lib/services/polymarket.service';
 import { KalshiService } from '@/lib/services/kalshi.service';
+import { PolymarketService } from '@/lib/services/polymarket.service';
 import { prisma } from '@/lib/prisma';
 import { requireCronAuth } from '@/lib/cron-auth';
 
@@ -13,83 +13,102 @@ export async function GET(request: Request) {
     const authError = requireCronAuth(request);
     if (authError) return authError;
 
-    console.log('\n🔄 CRON: Master Sync Job');
-    const startTime = Date.now();
+    const startedAt = Date.now();
+    let updated = 0;
+    let markedInactive = 0;
+    let errors = 0;
 
-    const results = {
-      polymarket: 0,
-      kalshi: 0,
-      errors: [] as string[]
-    };
+    const [verifiedPairs, polyService, kalshiService] = await Promise.all([
+      prisma.marketMatch.findMany({
+        where: { isEquivalent: true, confidence: { gte: 0.82 } },
+        select: {
+          marketA: {
+            select: {
+              id: true,
+              platform: true,
+              externalId: true,
+              slug: true,
+              active: true
+            }
+          },
+          marketB: {
+            select: {
+              id: true,
+              platform: true,
+              externalId: true,
+              slug: true,
+              active: true
+            }
+          }
+        }
+      }),
+      Promise.resolve(new PolymarketService()),
+      Promise.resolve(new KalshiService())
+    ]);
 
-    // Polymarket: Incremental (rápido)
-    try {
-      console.log('\n📊 Syncing Polymarket...');
-      const polyService = new PolymarketService();
-      results.polymarket = await polyService.syncIncrementalToDB();
-    } catch (error) {
-      const msg = `Polymarket failed: ${error instanceof Error ? error.message : error}`;
-      console.error(`❌ ${msg}`);
-      results.errors.push(msg);
+    const marketsById = new Map<string, { id: string; platform: string; externalId: string; slug: string; active: boolean }>();
+    for (const pair of verifiedPairs) {
+      marketsById.set(pair.marketA.id, pair.marketA);
+      marketsById.set(pair.marketB.id, pair.marketB);
     }
+    const markets = [...marketsById.values()];
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    for (const market of markets) {
+      try {
+        const liveData =
+          market.platform === 'POLYMARKET'
+            ? await polyService.getLiveMarket({
+                externalId: market.externalId,
+                platform: 'POLYMARKET',
+                slug: market.slug
+              })
+            : await kalshiService.getLiveMarket({
+                externalId: market.externalId,
+                platform: 'KALSHI'
+              });
 
-    // Kalshi: Incremental
-    try {
-      console.log('\n📊 Syncing Kalshi...');
-      const kalshiService = new KalshiService();
-      results.kalshi = await kalshiService.syncIncrementalToDB();
-    } catch (error) {
-      const msg = `Kalshi failed: ${error instanceof Error ? error.message : error}`;
-      console.error(`❌ ${msg}`);
-      results.errors.push(msg);
+        if (!liveData) {
+          errors++;
+          continue;
+        }
+
+        const isResolved = liveData.yesPrice <= 0.001 || liveData.yesPrice >= 0.999;
+        await prisma.market.update({
+          where: { id: market.id },
+          data: {
+            active: !isResolved,
+            resolvedAt: isResolved ? new Date() : null,
+            lastSyncedAt: new Date()
+          }
+        });
+
+        if (isResolved && market.active) {
+          markedInactive++;
+          await prisma.arbitrageOpportunity.updateMany({
+            where: {
+              active: true,
+              match: {
+                OR: [{ marketAId: market.id }, { marketBId: market.id }]
+              }
+            },
+            data: { active: false, closedAt: new Date() }
+          });
+        } else {
+          updated++;
+        }
+      } catch {
+        errors++;
+      }
     }
-
-    // Cleanup: inactive con endDate > 7 días atrás
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const deletedInactive = await prisma.market.deleteMany({
-      where: {
-        active: false,
-        endDate: { lt: sevenDaysAgo }
-      }
-    });
-
-    // Resolved sin matches útiles, más de 7 días (reduce tamaño DB / egress)
-    const resolvedCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const deletedResolvedStale = await prisma.market.deleteMany({
-      where: {
-        active: false,
-        resolvedAt: { not: null, lt: resolvedCutoff },
-        AND: [{ matchesAsA: { none: {} } }, { matchesAsB: { none: {} } }]
-      }
-    });
-
-    const deleted = deletedInactive.count + deletedResolvedStale.count;
-    console.log(
-      `\n🗑️ Cleaned up ${deletedInactive.count} inactive by endDate + ${deletedResolvedStale.count} resolved stale (no matches) = ${deleted} total`
-    );
-
-    const duration = Math.round((Date.now() - startTime) / 1000);
-
-    console.log(`\n✅ CRON COMPLETE:`);
-    console.log(`   - Polymarket: ${results.polymarket}`);
-    console.log(`   - Kalshi: ${results.kalshi}`);
-    console.log(`   - Cleaned: ${deleted}`);
-    console.log(`   - Duration: ${duration}s`);
-    console.log(`   - Errors: ${results.errors.length}`);
 
     return NextResponse.json({
       success: true,
-      timestamp: new Date().toISOString(),
-      duration,
-      results,
-      cleaned: deleted,
-      cleanedInactiveEndDate: deletedInactive.count,
-      cleanedResolvedStale: deletedResolvedStale.count,
-      errors: results.errors
+      totalMarkets: markets.length,
+      updated,
+      markedInactive,
+      errors,
+      durationMs: Date.now() - startedAt,
+      runAt: new Date().toISOString()
     });
   } catch (error) {
     console.error('❌ CRON FAILED:', error);

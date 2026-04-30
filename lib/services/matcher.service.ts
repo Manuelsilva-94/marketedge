@@ -11,9 +11,47 @@ interface MatchResult {
 
 export class MatcherService {
   private normalizer: NormalizerService;
+  private readonly COMPETITION_NOISE = /\b\d{4}(?:-\d{2,4})?\b/g;
 
   constructor() {
     this.normalizer = new NormalizerService();
+  }
+
+  private normalizeEntityKey(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private extractWinnerSubject(question: string): string | null {
+    const primary = question.split(' — ')[0]?.trim() ?? question.trim();
+    const match = primary.match(/^will\s+(.+?)\s+win\s+/i);
+    if (!match) return null;
+    return this.normalizeEntityKey(match[1]);
+  }
+
+  private extractWinnerCompetition(question: string): string | null {
+    const primary = question.split(' — ')[0]?.trim() ?? question.trim();
+    const match = primary.match(/\bwin\s+(?:the\s+)?(.+?)(?:\?|$)/i);
+    if (!match) return null;
+    return this.normalizeEntityKey(match[1]).replace(this.COMPETITION_NOISE, '').trim();
+  }
+
+  private shouldRejectWinnerPair(sourceQuestion: string, targetQuestion: string): boolean {
+    const sourceSubject = this.extractWinnerSubject(sourceQuestion);
+    const targetSubject = this.extractWinnerSubject(targetQuestion);
+    if (!sourceSubject || !targetSubject) return false;
+
+    const sourceCompetition = this.extractWinnerCompetition(sourceQuestion);
+    const targetCompetition = this.extractWinnerCompetition(targetQuestion);
+    if (sourceCompetition && targetCompetition && sourceCompetition !== targetCompetition) {
+      return true;
+    }
+    return sourceSubject !== targetSubject;
   }
 
   /**
@@ -251,6 +289,9 @@ export class MatcherService {
     const results: MatchResult[] = [];
 
     for (const candidate of candidates) {
+      if (this.shouldRejectWinnerPair(sourceMarket.question, candidate.question)) {
+        continue;
+      }
       const cleanQuestion = candidate.question.includes(' — ')
         ? candidate.question.split(' — ')[0]
         : candidate.question;
@@ -309,6 +350,9 @@ export class MatcherService {
     const results: MatchResult[] = [];
 
     for (const candidate of candidates) {
+      if (this.shouldRejectWinnerPair(sourceMarket.question, candidate.question)) {
+        continue;
+      }
       const cleanQuestion = candidate.question.includes(' — ')
         ? candidate.question.split(' — ')[0]
         : candidate.question;

@@ -10,6 +10,7 @@ import { PolymarketService } from '@/lib/services/polymarket.service';
 import { MatcherService } from '@/lib/services/matcher.service';
 import { createManyChunked } from '@/lib/discover-markets-shared';
 import type { Market } from '@/lib/db-types';
+import { extractSearchKeywords, searchPolymarketCandidates } from '@/lib/polymarket-search';
 
 const GAMMA = 'https://gamma-api.polymarket.com';
 const KALSHI_BASE = 'https://api.elections.kalshi.com/trade-api/v2';
@@ -310,12 +311,6 @@ export async function runSportsKeywordAutoMatch(deadline: number): Promise<Sport
 
   const matcher = new MatcherService();
 
-  const polyPool = await prisma.market.findMany({
-    where: { platform: 'POLYMARKET', active: true },
-    orderBy: { volume24h: 'desc' },
-    take: 6000
-  });
-
   const kalshiSports = await prisma.market.findMany({
     where: {
       platform: 'KALSHI',
@@ -330,6 +325,41 @@ export async function runSportsKeywordAutoMatch(deadline: number): Promise<Sport
   for (const kalshi of kalshiSports) {
     if (Date.now() >= deadline) break;
 
+    const query = extractSearchKeywords(kalshi.question);
+    const polySearch = await searchPolymarketCandidates(query, 24);
+    const polyPool = polySearch.map((item) => ({
+      id: `temp_poly_${item.externalId}`,
+      platform: 'POLYMARKET' as const,
+      externalId: item.externalId,
+      question: item.question,
+      slug: item.slug,
+      description: null,
+      category: null,
+      tags: [],
+      makerFee: null,
+      takerFee: null,
+      feeStructure: null,
+      volume24h: item.volume24h,
+      volumeTotal: 0,
+      liquidity: 0,
+      openInterest: null,
+      normalizedQuestion: null,
+      active: true,
+      endDate: item.endDate,
+      resolvedAt: null,
+      outcome: null,
+      imageUrl: null,
+      url: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSyncedAt: new Date(),
+      eventId: null,
+      eventSlug: null,
+      eventTitle: null,
+      seriesId: null,
+      polyTokenIds: null
+    }));
+
     const candidates = matcher.findMatchesFromCandidates(
       kalshi as Market,
       polyPool as Market[],
@@ -338,7 +368,32 @@ export async function runSportsKeywordAutoMatch(deadline: number): Promise<Sport
     const best = candidates[0];
     if (!best || best.score < KEYWORD_AUTO_MATCH_MIN) continue;
 
-    const poly = best.market;
+    const existingPoly = await prisma.market.findUnique({
+      where: {
+        platform_externalId: {
+          platform: 'POLYMARKET',
+          externalId: best.market.externalId
+        }
+      }
+    });
+    const poly =
+      existingPoly ??
+      (await prisma.market.create({
+        data: {
+          platform: 'POLYMARKET',
+          externalId: best.market.externalId,
+          question: best.market.question,
+          slug: best.market.slug,
+          category: best.market.category,
+          tags: best.market.tags ?? [],
+          volume24h: best.market.volume24h ?? 0,
+          volumeTotal: best.market.volumeTotal ?? 0,
+          liquidity: best.market.liquidity ?? 0,
+          active: true,
+          endDate: best.market.endDate ?? null,
+          lastSyncedAt: new Date()
+        }
+      }));
     const dup = await prisma.marketMatch.findFirst({
       where: {
         OR: [

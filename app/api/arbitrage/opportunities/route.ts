@@ -235,7 +235,8 @@ export async function GET(req: NextRequest) {
         marketA: { select },
         marketB: { select }
       },
-      orderBy: { confidence: 'desc' }
+      orderBy: { confidence: 'desc' },
+      take: 300
     });
 
     // Normalizar para que polymarket siempre sea A y kalshi sea B
