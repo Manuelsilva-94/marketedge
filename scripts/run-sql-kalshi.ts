@@ -9,7 +9,6 @@ interface MarketData {
   externalId: string;
   question: string;
   slug: string;
-  description: string | null;
   category: string | null;
   tags: string[];
   volume24h: number;
@@ -60,7 +59,6 @@ async function runSQLKalshi() {
               externalId: m.externalId,
               question: m.question,
               slug: m.slug,
-              description: m.description,
               category: m.category,
               tags: m.tags,
               makerFee: 0.07,
@@ -89,7 +87,6 @@ async function runSQLKalshi() {
               update: {
                 question: createData.question,
                 slug: createData.slug,
-                description: createData.description,
                 category: createData.category,
                 tags: createData.tags,
                 volume24h: createData.volume24h,
@@ -130,7 +127,6 @@ async function runSQLKalshi() {
             externalId: m.externalId,
             question: m.question,
             slug: m.slug,
-            description: m.description,
             category: m.category,
             tags: m.tags,
             makerFee: 0.07,
@@ -159,7 +155,6 @@ async function runSQLKalshi() {
             update: {
               question: createData.question,
               slug: createData.slug,
-              description: createData.description,
               category: createData.category,
               tags: createData.tags,
               volume24h: createData.volume24h,
