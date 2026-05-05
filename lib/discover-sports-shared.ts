@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { KalshiService } from '@/lib/services/kalshi.service';
 import { PolymarketService } from '@/lib/services/polymarket.service';
 import { MatcherService } from '@/lib/services/matcher.service';
+import { SemanticMatcherService } from '@/lib/services/semantic-matcher.service';
 import { createManyChunked } from '@/lib/discover-markets-shared';
 import type { Market } from '@/lib/db-types';
 import { extractSearchKeywords, searchPolymarketCandidates } from '@/lib/polymarket-search';
@@ -57,8 +58,12 @@ export const SPORTS_SERIES_TICKERS: string[] = [
 ];
 
 const POLY_PAGE = 80;
-const KEYWORD_AUTO_MATCH_MIN = 0.92;
+/** Umbral de keywords para ser candidato (antes de LLM) */
+const KEYWORD_AUTO_MATCH_MIN = 0.85; // Bajado de 0.92 para capturar más candidatos
+/** Umbral de confianza LLM para crear el par */
+const SEMANTIC_CONFIDENCE_MIN = 0.82;
 const MAX_AUTO_MATCH_KALSHI = 12;
+const GROQ_DELAY_MS = 1100; // Delay entre llamadas LLM
 
 export type SportsDiscoverKalshiResult = {
   fetched: number;
@@ -78,8 +83,51 @@ export type SportsDiscoverPolymarketResult = {
 
 export type SportsKeywordAutoMatchResult = {
   pairsCreated: number;
+  candidatesChecked: number;
+  llmEvaluated: number;
+  llmRejected: number;
   durationMs: number;
 };
+
+type SportsKalshiCandidate = {
+  id: string;
+  externalId: string;
+  question: string;
+  slug: string;
+  seriesId: string | null;
+  endDate: Date | null;
+  volume24h: number;
+};
+
+async function loadLiveKalshiSportsCandidates(
+  deadline: number,
+  maxCandidates: number
+): Promise<SportsKalshiCandidate[]> {
+  const kalshiService = new KalshiService();
+  const out: SportsKalshiCandidate[] = [];
+  const seen = new Set<string>();
+
+  for (const seriesTicker of SPORTS_SERIES_TICKERS) {
+    if (Date.now() >= deadline || out.length >= maxCandidates) break;
+    const { markets } = await fetchKalshiSportsEventsPage(kalshiService, seriesTicker);
+    for (const item of markets) {
+      if (Date.now() >= deadline || out.length >= maxCandidates) break;
+      const normalized = kalshiService.normalizeMarketFromEvent(item.market, item.event);
+      if (!normalized.externalId || seen.has(normalized.externalId)) continue;
+      seen.add(normalized.externalId);
+      out.push({
+        id: `temp_kalshi_${normalized.externalId}`,
+        externalId: normalized.externalId,
+        question: normalized.question,
+        slug: normalized.slug,
+        seriesId: normalized.seriesId ?? null,
+        endDate: normalized.endDate ?? null,
+        volume24h: normalized.volume24h ?? 0
+      });
+    }
+  }
+  return out;
+}
 
 async function fetchKalshiSportsEventsPage(
   kalshiService: KalshiService,
@@ -302,28 +350,25 @@ export async function runDiscoverSportsPolymarket(deadline: number): Promise<Spo
 }
 
 /**
- * Keyword-only auto-match for Kalshi sports series vs Polymarket pool (no LLM).
- * Creates MarketMatch when top candidate score >= KEYWORD_AUTO_MATCH_MIN.
+ * Sports auto-match with LLM validation (Groq) for accuracy.
+ * Keywords filter candidates (>= 0.85), then LLM validates (>= 0.82) before creating MarketMatch.
  */
 export async function runSportsKeywordAutoMatch(deadline: number): Promise<SportsKeywordAutoMatchResult> {
   const start = Date.now();
   let pairsCreated = 0;
+  let candidatesChecked = 0;
+  let llmEvaluated = 0;
+  let llmRejected = 0;
 
   const matcher = new MatcherService();
+  const semanticMatcher = new SemanticMatcherService();
 
-  const kalshiSports = await prisma.market.findMany({
-    where: {
-      platform: 'KALSHI',
-      active: true,
-      seriesId: { in: SPORTS_SERIES_TICKERS },
-      AND: [{ matchesAsA: { none: {} } }, { matchesAsB: { none: {} } }]
-    },
-    orderBy: { createdAt: 'desc' },
-    take: MAX_AUTO_MATCH_KALSHI
-  });
+  // Pull candidates live from Kalshi API so sports discovery does not depend on DB backlog.
+  const kalshiSports = await loadLiveKalshiSportsCandidates(deadline, MAX_AUTO_MATCH_KALSHI);
 
   for (const kalshi of kalshiSports) {
     if (Date.now() >= deadline) break;
+    candidatesChecked++;
 
     const query = extractSearchKeywords(kalshi.question);
     const polySearch = await searchPolymarketCandidates(query, 24);
@@ -368,6 +413,35 @@ export async function runSportsKeywordAutoMatch(deadline: number): Promise<Sport
     const best = candidates[0];
     if (!best || best.score < KEYWORD_AUTO_MATCH_MIN) continue;
 
+    // Persist both markets to DB for LLM validation
+    const existingKalshi = await prisma.market.findUnique({
+      where: {
+        platform_externalId: {
+          platform: 'KALSHI',
+          externalId: kalshi.externalId
+        }
+      }
+    });
+    const kalshiDb =
+      existingKalshi ??
+      (await prisma.market.create({
+        data: {
+          platform: 'KALSHI',
+          externalId: kalshi.externalId,
+          question: kalshi.question,
+          slug: kalshi.slug,
+          category: 'Sports',
+          tags: [],
+          volume24h: kalshi.volume24h ?? 0,
+          volumeTotal: 0,
+          liquidity: 0,
+          active: true,
+          endDate: kalshi.endDate,
+          seriesId: kalshi.seriesId,
+          lastSyncedAt: new Date()
+        }
+      }));
+
     const existingPoly = await prisma.market.findUnique({
       where: {
         platform_externalId: {
@@ -394,11 +468,28 @@ export async function runSportsKeywordAutoMatch(deadline: number): Promise<Sport
           lastSyncedAt: new Date()
         }
       }));
+
+    // LLM validation before creating pair
+    llmEvaluated++;
+    const result = await semanticMatcher.evaluatePair(kalshiDb, poly);
+    
+    if (!result.isEquivalent || result.confidence < SEMANTIC_CONFIDENCE_MIN) {
+      llmRejected++;
+      console.log(
+        `[sports-match] LLM rejected: ${kalshi.question.slice(0, 40)} vs ${best.market.question.slice(0, 40)} (confidence: ${result.confidence})`
+      );
+      await new Promise((r) => setTimeout(r, GROQ_DELAY_MS));
+      continue;
+    }
+
+    console.log(
+      `[sports-match] LLM approved: ${kalshi.question.slice(0, 40)} vs ${best.market.question.slice(0, 40)} (confidence: ${result.confidence})`
+    );
     const dup = await prisma.marketMatch.findFirst({
       where: {
         OR: [
-          { marketAId: kalshi.id, marketBId: poly.id },
-          { marketAId: poly.id, marketBId: kalshi.id }
+          { marketAId: kalshiDb.id, marketBId: poly.id },
+          { marketAId: poly.id, marketBId: kalshiDb.id }
         ]
       }
     });
@@ -406,16 +497,18 @@ export async function runSportsKeywordAutoMatch(deadline: number): Promise<Sport
 
     await prisma.marketMatch.create({
       data: {
-        marketAId: kalshi.id,
+        marketAId: kalshiDb.id,
         marketBId: poly.id,
         isEquivalent: true,
-        confidence: Math.min(1, best.score),
-        reasoning: `Sports auto-match (keyword ${(best.score * 100).toFixed(1)}%)`,
-        model: 'keyword-sports-auto'
+        confidence: result.confidence,
+        reasoning: result.reasoning ?? `Sports auto-match (keyword ${(best.score * 100).toFixed(1)}% + LLM ${(result.confidence * 100).toFixed(1)}%)`
       }
     });
     pairsCreated += 1;
+
+    // Delay between LLM calls
+    await new Promise((r) => setTimeout(r, GROQ_DELAY_MS));
   }
 
-  return { pairsCreated, durationMs: Date.now() - start };
+  return { pairsCreated, candidatesChecked, llmEvaluated, llmRejected, durationMs: Date.now() - start };
 }

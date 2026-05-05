@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ComparisonService } from '@/lib/services/comparison.service';
+import { KalshiService } from '@/lib/services/kalshi.service';
+import { PolymarketService } from '@/lib/services/polymarket.service';
 import type { Platform } from '@/lib/db-types';
 
 export const dynamic = 'force-dynamic';
@@ -53,13 +55,17 @@ export interface CompareApiResponse {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: marketId } = await context.params;
+    const url = new URL(request.url);
+    const platform = url.searchParams.get('platform') as Platform | null;
+    const externalId = url.searchParams.get('externalId');
 
-    const dbMarket = await prisma.market.findUnique({
+    // Try DB first
+    let dbMarket = await prisma.market.findUnique({
       where: { id: marketId },
       select: {
         id: true,
@@ -80,6 +86,86 @@ export async function GET(
         eventId: true
       }
     });
+
+    // Fallback: try to fetch from APIs if not in DB
+    if (!dbMarket && platform && externalId) {
+      console.log(`[Compare] Market ${marketId} not in DB, trying live fetch: ${platform} ${externalId}`);
+      
+      try {
+        if (platform === 'KALSHI') {
+          const kalshiService = new KalshiService();
+          const liveData = await kalshiService.getLiveMarket({ externalId, platform });
+          
+          if (liveData) {
+            // Fetch full market data
+            const response = await fetch(`https://api.elections.kalshi.com/trade-api/v2/markets/${externalId}`, {
+              headers: kalshiService['auth'].getHeaders('GET', `/trade-api/v2/markets/${externalId}`)
+            });
+            
+            if (response.ok) {
+              const { market: rawMarket } = await response.json();
+              const normalized = kalshiService.normalizeMarket(rawMarket);
+              
+              dbMarket = {
+                id: marketId,
+                platform: 'KALSHI',
+                question: normalized.question,
+                category: normalized.category ?? null,
+                tags: [],
+                endDate: normalized.endDate ?? null,
+                volume24h: normalized.volume24h ?? 0,
+                volumeTotal: 0,
+                liquidity: 0,
+                url: normalized.url ?? null,
+                eventTitle: null,
+                makerFee: null,
+                takerFee: null,
+                externalId: normalized.externalId,
+                seriesId: normalized.seriesId ?? null,
+                eventId: normalized.eventId ?? null
+              };
+            }
+          }
+        } else if (platform === 'POLYMARKET') {
+          const polyService = new PolymarketService();
+          
+          // Try to fetch from Gamma API
+          const response = await fetch(
+            `https://gamma-api.polymarket.com/markets?slug=${encodeURIComponent(externalId)}&limit=1`
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            const rawMarket = data[0];
+            
+            if (rawMarket) {
+              const normalized = polyService.normalizeMarket(rawMarket);
+              
+              dbMarket = {
+                id: marketId,
+                platform: 'POLYMARKET',
+                question: normalized.question,
+                category: null,
+                tags: [],
+                endDate: normalized.endDate ?? null,
+                volume24h: normalized.volume24h ?? 0,
+                volumeTotal: normalized.volumeTotal ?? 0,
+                liquidity: normalized.liquidity ?? 0,
+                url: normalized.url ?? null,
+                eventTitle: null,
+                makerFee: normalized.makerFee ?? null,
+                takerFee: normalized.takerFee ?? null,
+                externalId: normalized.externalId,
+                seriesId: null,
+                eventId: null
+              };
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[Compare] Live fetch error:', error);
+      }
+    }
 
     if (!dbMarket) {
       return NextResponse.json(

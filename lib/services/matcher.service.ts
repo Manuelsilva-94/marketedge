@@ -12,9 +12,61 @@ interface MatchResult {
 export class MatcherService {
   private normalizer: NormalizerService;
   private readonly COMPETITION_NOISE = /\b\d{4}(?:-\d{2,4})?\b/g;
+  // Regex para detectar distritos electorales (ej: MO-05, WI-06, CA-12)
+  private readonly DISTRICT_PATTERN = /\b([A-Z]{2})-(\d{1,2})\b/g;
+  // Regex para años
+  private readonly YEAR_PATTERN = /\b(20\d{2})\b/g;
 
   constructor() {
     this.normalizer = new NormalizerService();
+  }
+
+  /**
+   * Extrae el código de distrito electoral (ej: "MO-05" -> {state: "MO", district: "05"})
+   */
+  private extractDistrict(text: string): { state: string; district: string } | null {
+    const match = text.match(this.DISTRICT_PATTERN);
+    if (!match) return null;
+    const [full, state, district] = match;
+    return { state: state.toUpperCase(), district: district.padStart(2, '0') };
+  }
+
+  /**
+   * Extrae el año de una pregunta (ej: "2024 election" -> "2024")
+   */
+  private extractYear(text: string): string | null {
+    const match = text.match(this.YEAR_PATTERN);
+    return match ? match[0] : null;
+  }
+
+  /**
+   * Verifica si dos textos tienen distritos electorales diferentes
+   */
+  private hasDifferentDistricts(text1: string, text2: string): boolean {
+    const district1 = this.extractDistrict(text1);
+    const district2 = this.extractDistrict(text2);
+    
+    // Si ambos tienen distrito, deben coincidir
+    if (district1 && district2) {
+      return district1.state !== district2.state || district1.district !== district2.district;
+    }
+    
+    return false;
+  }
+
+  /**
+   * Verifica si dos textos tienen años diferentes
+   */
+  private hasDifferentYears(text1: string, text2: string): boolean {
+    const year1 = this.extractYear(text1);
+    const year2 = this.extractYear(text2);
+    
+    // Si ambos tienen año explícito, deben coincidir
+    if (year1 && year2) {
+      return year1 !== year2;
+    }
+    
+    return false;
   }
 
   private normalizeEntityKey(value: string): string {
@@ -42,6 +94,16 @@ export class MatcherService {
   }
 
   private shouldRejectWinnerPair(sourceQuestion: string, targetQuestion: string): boolean {
+    // Rechazar si tienen distritos electorales diferentes
+    if (this.hasDifferentDistricts(sourceQuestion, targetQuestion)) {
+      return true;
+    }
+
+    // Rechazar si tienen años explícitos diferentes
+    if (this.hasDifferentYears(sourceQuestion, targetQuestion)) {
+      return true;
+    }
+
     const sourceSubject = this.extractWinnerSubject(sourceQuestion);
     const targetSubject = this.extractWinnerSubject(targetQuestion);
     if (!sourceSubject || !targetSubject) return false;
@@ -139,6 +201,25 @@ export class MatcherService {
     targetMarket: Market,
     targetKeywords: string[]
   ): MatchResult {
+    // Rechazar inmediatamente si tienen distritos o años diferentes
+    if (this.hasDifferentDistricts(sourceQuestion, targetMarket.question)) {
+      return {
+        market: targetMarket,
+        score: 0,
+        matchType: 'RELATED',
+        flags: ['DIFFERENT_DISTRICT']
+      };
+    }
+
+    if (this.hasDifferentYears(sourceQuestion, targetMarket.question)) {
+      return {
+        market: targetMarket,
+        score: 0,
+        matchType: 'RELATED',
+        flags: ['DIFFERENT_YEAR']
+      };
+    }
+
     const similarity = this.calculateKeywordSimilarity(
       sourceKeywords,
       targetKeywords,
@@ -175,7 +256,7 @@ export class MatcherService {
       const targetYear = targetText.match(/\d{4}/)?.[0];
 
       if (sourceYear && targetYear && sourceYear !== targetYear) {
-        flags.push('DIFFERENT_YEAR');
+        flags.push('YEAR_MISMATCH');
       }
     }
 

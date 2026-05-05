@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { MatcherService } from '@/lib/services/matcher.service';
 import { SemanticMatcherService } from '@/lib/services/semantic-matcher.service';
+import { KalshiService } from '@/lib/services/kalshi.service';
 import { requireCronAuth } from '@/lib/cron-auth';
 import { extractSearchKeywords, searchPolymarketCandidates } from '@/lib/polymarket-search';
 
@@ -9,15 +10,10 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 55;
 
 const MIN_KEYWORD_SCORE = 0.6;
+const MAX_LIVE_KALSHI_TO_FETCH = 50; // Cantidad de mercados Kalshi nuevos a buscar desde API
 const MAX_MARKETS_TO_PROCESS = 22;
 const MAX_CANDIDATES_PER_MARKET = 2;
 const GROQ_DELAY_MS = 1100;
-
-/** Kalshi markets nuevos en esta ventana (prioridad). */
-const RECENT_HOURS = 168; // 7 días
-/** Kalshi activos sin match (cualquier antigüedad), por si se escaparon del matcher. */
-const BACKLOG_TAKE = 10;
-const RECENT_TAKE = 14;
 
 type CandidateMarket = {
   id: string;
@@ -94,58 +90,134 @@ function toCandidateMarket(item: {
   };
 }
 
+/**
+ * Carga candidatos Kalshi frescos desde la API (no solo los que están en DB sin match)
+ */
+async function loadLiveKalshiCandidates(deadline: number, maxCandidates: number): Promise<Array<{
+  externalId: string;
+  question: string;
+  slug: string;
+  category: string | null;
+  volume24h: number;
+  endDate: Date | null;
+  seriesId: string | null;
+  eventId: string | null;
+}>> {
+  const kalshiService = new KalshiService();
+  const out: Array<{
+    externalId: string;
+    question: string;
+    slug: string;
+    category: string | null;
+    volume24h: number;
+    endDate: Date | null;
+    seriesId: string | null;
+    eventId: string | null;
+  }> = [];
+  const seen = new Set<string>();
+
+  try {
+    // Fetch recent markets from Kalshi API (status=open, sorted by volume)
+    const response = await kalshiService.getMarkets({
+      status: 'open',
+      limit: maxCandidates * 2 // Fetch more than needed in case some are duplicates or already matched
+    });
+
+    for (const rawMarket of response.markets || []) {
+      if (Date.now() >= deadline || out.length >= maxCandidates) break;
+
+      const normalized = kalshiService.normalizeMarket(rawMarket);
+      if (!normalized.externalId || seen.has(normalized.externalId)) continue;
+      
+      // Skip if already matched in DB
+      const existingMatch = await prisma.market.findFirst({
+        where: {
+          platform: 'KALSHI',
+          externalId: normalized.externalId,
+          OR: [
+            { matchesAsA: { some: {} } },
+            { matchesAsB: { some: {} } }
+          ]
+        },
+        select: { id: true }
+      });
+      
+      if (existingMatch) continue;
+      
+      seen.add(normalized.externalId);
+      out.push({
+        externalId: normalized.externalId,
+        question: normalized.question,
+        slug: normalized.slug,
+        category: normalized.category ?? null,
+        volume24h: normalized.volume24h ?? 0,
+        endDate: normalized.endDate ?? null,
+        seriesId: normalized.seriesId ?? null,
+        eventId: normalized.eventId ?? null
+      });
+    }
+
+    console.log(`[match-new] Loaded ${out.length} live Kalshi candidates from API`);
+    return out;
+  } catch (error) {
+    console.error('[match-new] Error loading live Kalshi candidates:', error);
+    return out;
+  }
+}
+
 export async function GET(req: NextRequest) {
   const authError = requireCronAuth(req);
   if (authError) return authError;
 
   const startTime = Date.now();
   const MAX_DURATION_MS = 50_000;
+  const deadline = Date.now() + MAX_DURATION_MS;
 
-  const since = new Date(Date.now() - RECENT_HOURS * 60 * 60 * 1000);
+  // Load fresh Kalshi markets from API instead of DB backlog
+  const liveKalshiCandidates = await loadLiveKalshiCandidates(deadline, MAX_LIVE_KALSHI_TO_FETCH);
 
-  const [recentKalshi, backlogKalshi] = await Promise.all([
-    prisma.market.findMany({
-      where: {
-        platform: 'KALSHI',
-        active: true,
-        createdAt: { gte: since },
-        AND: [{ matchesAsA: { none: {} } }, { matchesAsB: { none: {} } }]
-      },
-      orderBy: { volume24h: 'desc' },
-      take: RECENT_TAKE
-    }),
-    prisma.market.findMany({
-      where: {
-        platform: 'KALSHI',
-        active: true,
-        createdAt: { lt: since },
-        AND: [{ matchesAsA: { none: {} } }, { matchesAsB: { none: {} } }]
-      },
-      orderBy: [{ volume24h: 'desc' }, { createdAt: 'desc' }],
-      take: BACKLOG_TAKE
-    })
-  ]);
+  // Also check DB for any stragglers (markets we have but haven't matched yet)
+  const dbBacklog = await prisma.market.findMany({
+    where: {
+      platform: 'KALSHI',
+      active: true,
+      AND: [{ matchesAsA: { none: {} } }, { matchesAsB: { none: {} } }]
+    },
+    orderBy: { volume24h: 'desc' },
+    take: 10,
+    select: {
+      externalId: true,
+      question: true,
+      slug: true,
+      category: true,
+      volume24h: true,
+      endDate: true,
+      seriesId: true,
+      eventId: true
+    }
+  });
 
+  // Combine live + DB candidates, prioritizing live (fresher data)
   const seen = new Set<string>();
-  const newKalshiMarkets = [...recentKalshi, ...backlogKalshi]
+  const allCandidates = [...liveKalshiCandidates, ...dbBacklog]
     .filter((m) => {
-      if (seen.has(m.id)) return false;
-      seen.add(m.id);
+      if (seen.has(m.externalId)) return false;
+      seen.add(m.externalId);
       return true;
     })
     .slice(0, MAX_MARKETS_TO_PROCESS);
 
   console.log(
-    `[match-new] ${newKalshiMarkets.length} Kalshi markets without match (${recentKalshi.length} recent ≤${RECENT_HOURS}h + ${backlogKalshi.length} backlog)`
+    `[match-new] ${allCandidates.length} Kalshi candidates to process (${liveKalshiCandidates.length} live + ${dbBacklog.length} DB backlog)`
   );
 
-  if (newKalshiMarkets.length === 0) {
+  if (allCandidates.length === 0) {
     return NextResponse.json({
       processed: 0,
       pairsEvaluated: 0,
       newMatches: 0,
       durationMs: Date.now() - startTime,
-      message: 'No new markets to match'
+      message: 'No new Kalshi markets to match'
     });
   }
 
@@ -156,10 +228,41 @@ export async function GET(req: NextRequest) {
   let pairsEvaluated = 0;
   let newMatches = 0;
 
-  for (const kalshiMarket of newKalshiMarkets) {
+  for (const kalshiCandidate of allCandidates) {
     if (Date.now() - startTime > MAX_DURATION_MS) {
-      console.log(`[match-new] Time limit reached, stopping at ${processed}/${newKalshiMarkets.length}`);
+      console.log(`[match-new] Time limit reached, stopping at ${processed}/${allCandidates.length}`);
       break;
+    }
+
+    // Check/create Kalshi market in DB
+    let kalshiMarket = await prisma.market.findUnique({
+      where: {
+        platform_externalId: {
+          platform: 'KALSHI',
+          externalId: kalshiCandidate.externalId
+        }
+      }
+    });
+
+    if (!kalshiMarket) {
+      kalshiMarket = await prisma.market.create({
+        data: {
+          platform: 'KALSHI',
+          externalId: kalshiCandidate.externalId,
+          question: kalshiCandidate.question,
+          slug: kalshiCandidate.slug,
+          category: kalshiCandidate.category,
+          tags: [],
+          volume24h: kalshiCandidate.volume24h,
+          volumeTotal: 0,
+          liquidity: 0,
+          active: true,
+          endDate: kalshiCandidate.endDate,
+          seriesId: kalshiCandidate.seriesId,
+          eventId: kalshiCandidate.eventId,
+          lastSyncedAt: new Date()
+        }
+      });
     }
 
     const query = extractSearchKeywords(kalshiMarket.question);
@@ -229,9 +332,9 @@ export async function GET(req: NextRequest) {
     processed,
     pairsEvaluated,
     newMatches,
+    liveFromAPI: liveKalshiCandidates.length,
+    dbBacklog: dbBacklog.length,
     durationMs,
-    recentWindowHours: RECENT_HOURS,
-    backlogTake: BACKLOG_TAKE,
-    message: `${newMatches} new matches found from ${processed} Kalshi markets (recent + backlog)`
+    message: `${newMatches} new matches found from ${processed} Kalshi markets (${liveKalshiCandidates.length} live + ${dbBacklog.length} DB backlog)`
   });
 }
